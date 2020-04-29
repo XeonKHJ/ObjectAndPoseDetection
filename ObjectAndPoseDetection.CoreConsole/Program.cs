@@ -1,4 +1,5 @@
 ﻿using System;
+using ObjectAndPoseDetection.Detector;
 
 namespace ObjectAndPoseDetection.CoreConsole
 {

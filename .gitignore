@@ -339,8 +339,12 @@ ASALocalRun/
 # BeatPulse healthcheck temp database
 healthchecksdb
 
-# ×Ô¶¨ÒåºöÂÔ
+
+#VSCode folder
+.vscode/
+
+# è‡ªå®šä¹‰å¿½ç•¥
 Assets/
 
-#pythonÎÄ¼þ
+#pythonæ–‡ä»¶
 ObjectAndPoseDetection.ModelBuilder/SingleShotPoseEnv/
