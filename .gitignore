@@ -341,3 +341,6 @@ healthchecksdb
 
 # 自定义忽略
 Assets/
+
+#python文件
+ObjectAndPoseDetection.ModelBuilder/SingleShotPoseEnv/
