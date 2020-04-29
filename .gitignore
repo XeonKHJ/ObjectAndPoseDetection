@@ -339,5 +339,8 @@ ASALocalRun/
 # BeatPulse healthcheck temp database
 healthchecksdb
 
-# ×Ô¶¨ÒåºöÂÔ
+# ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 Assets/
+
+#VSCode folder
+.vscode/
