@@ -1,0 +1,83 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{1f0f0b26-ae62-4c44-901c-b3a3be159184}</ProjectGuid>
+    <ProjectHome />
+    <StartupFile>cfg.py</StartupFile>
+    <SearchPath />
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterId />
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="LICENSE.txt" />
+    <Content Include="multi_obj_pose_estimation\cfg\.ipynb_checkpoints\train_occlusion-checkpoint.txt" />
+    <Content Include="multi_obj_pose_estimation\cfg\train_occlusion.txt" />
+    <Content Include="multi_obj_pose_estimation\PLACE__~backup_multi~__FOLDER_HERE.txt" />
+    <Content Include="multi_obj_pose_estimation\trained\output.txt" />
+    <Content Include="multi_obj_pose_estimation\trained\output2.txt" />
+    <Content Include="onnxtest.jpg" />
+    <Content Include="py2\LICENSE.txt" />
+    <Content Include="py2\multi_obj_pose_estimation\cfg\train_occlusion.txt" />
+    <Content Include="py2\multi_obj_pose_estimation\PLACE__~backup_multi~__FOLDER_HERE.txt" />
+    <Content Include="trained\apeOutput.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="cfg.py" />
+    <Compile Include="darknet.py" />
+    <Compile Include="dataset.py" />
+    <Compile Include="exportOnnx.py" />
+    <Compile Include="image.py" />
+    <Compile Include="MeshPly.py" />
+    <Compile Include="multi_obj_pose_estimation\darknet_multi.py" />
+    <Compile Include="multi_obj_pose_estimation\dataset_multi.py" />
+    <Compile Include="multi_obj_pose_estimation\image_multi.py" />
+    <Compile Include="multi_obj_pose_estimation\region_loss_multi.py" />
+    <Compile Include="multi_obj_pose_estimation\train_multi.py" />
+    <Compile Include="multi_obj_pose_estimation\utils_multi.py" />
+    <Compile Include="multi_obj_pose_estimation\valid_multi.py" />
+    <Compile Include="multi_obj_pose_estimation\__init__.py" />
+    <Compile Include="onnxtest.py" />
+    <Compile Include="predict.py" />
+    <Compile Include="py2\cfg.py" />
+    <Compile Include="py2\darknet.py" />
+    <Compile Include="py2\dataset.py" />
+    <Compile Include="py2\image.py" />
+    <Compile Include="py2\MeshPly.py" />
+    <Compile Include="py2\multi_obj_pose_estimation\darknet_multi.py" />
+    <Compile Include="py2\multi_obj_pose_estimation\dataset_multi.py" />
+    <Compile Include="py2\multi_obj_pose_estimation\image_multi.py" />
+    <Compile Include="py2\multi_obj_pose_estimation\region_loss_multi.py" />
+    <Compile Include="py2\multi_obj_pose_estimation\train_multi.py" />
+    <Compile Include="py2\multi_obj_pose_estimation\valid_multi.py" />
+    <Compile Include="py2\multi_obj_pose_estimation\__init__.py" />
+    <Compile Include="py2\region_loss.py" />
+    <Compile Include="py2\train.py" />
+    <Compile Include="py2\utils.py" />
+    <Compile Include="py2\valid.py" />
+    <Compile Include="region_loss.py" />
+    <Compile Include="train.py" />
+    <Compile Include="utils.py" />
+    <Compile Include="valid.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="multi_obj_pose_estimation" />
+    <Folder Include="multi_obj_pose_estimation\cfg" />
+    <Folder Include="multi_obj_pose_estimation\cfg\.ipynb_checkpoints" />
+    <Folder Include="multi_obj_pose_estimation\trained" />
+    <Folder Include="py2" />
+    <Folder Include="py2\multi_obj_pose_estimation" />
+    <Folder Include="py2\multi_obj_pose_estimation\cfg" />
+    <Folder Include="trained" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>
