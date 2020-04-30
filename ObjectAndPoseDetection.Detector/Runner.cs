@@ -9,13 +9,13 @@ using ObjectAndPoseDetection.Detector.YoloParser;
 
 namespace ObjectAndPoseDetection.Detector
 {
-    class Program
+    public class Runner
     {
-        static void Main(string[] args)
+        public static void Run(string[] args)
         {
-            var assetsRelativePath = @"../../../assets";
+            var assetsRelativePath = @"../../../../Assets";
             string assetsPath = GetAbsolutePath(assetsRelativePath);
-            var modelFilePath = Path.Combine(assetsPath, "Model", "model.onnx");
+            var modelFilePath = Path.Combine(assetsPath, "OnnxModel", "SingleObjectApe.onnx");
             var imagesFolder = Path.Combine(assetsPath, "images");
             var outputFolder = Path.Combine(assetsPath, "images", "output");
 
@@ -25,20 +25,20 @@ namespace ObjectAndPoseDetection.Detector
             IEnumerable<ImageNetData> images = ImageNetData.ReadFromFile(imagesFolder);
             IDataView imageDataView = mlContext.Data.LoadFromEnumerable(images);
 
-                var modelScorer = new OnnxModelScorer(imagesFolder, modelFilePath, mlContext);
-                var probabilities = modelScorer.Score(imageDataView);
+            var modelScorer = new OnnxModelScorer(imagesFolder, modelFilePath, mlContext);
+            var probabilities = modelScorer.Score(imageDataView);
 
-                YoloOutoutParser parser = new YoloOutoutParser();
+            YoloOutoutParser parser = new YoloOutoutParser();
 
-                var abc = probabilities.Count();
+            var abc = probabilities.Count();
 
-                var boundingBoxes = probabilities.Select(probability => parser.ParseOutputs(probability))
-                                                 .Select(boxes => parser.FilterBoundingBoxes(boxes, 5, .5f)).ToList();
+            var boundingBoxes = probabilities.Select(probability => parser.ParseOutputs(probability))
+                                             .Select(boxes => parser.FilterBoundingBoxes(boxes, 5, .5f)).ToList();
         }
 
         public static string GetAbsolutePath(string relativePath)
         {
-            FileInfo _dataRoot = new FileInfo(typeof(Program).Assembly.Location);
+            FileInfo _dataRoot = new FileInfo(typeof(Runner).Assembly.Location);
             string assemblyFolderPath = _dataRoot.Directory.FullName;
             string fullPath = Path.Combine(assemblyFolderPath, relativePath);
             return fullPath;

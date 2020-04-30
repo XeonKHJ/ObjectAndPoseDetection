@@ -76,7 +76,7 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
 if __name__ == '__main__':
     datacfg = 'cfg/ape.data'
     modelcfg = 'cfg/yolo-pose.cfg'
-    weightfile = 'LINEMOD/ape/trained/model.weights'
+    weightfile = '../Assets/trained/ape.weights'
 
     model = Darknet(modelcfg)
     model.load_weights(weightfile)
@@ -85,13 +85,13 @@ if __name__ == '__main__':
     test_width = 416
     test_height = 416
 
-    imagesPath = ['onnxtest.jpg']
+    imagesPath = ['../Assets/singleshotpose/LINEMOD/ape/JPEGImages/000000.jpg']
 
     #imgTensor = torch.tensor([1, 3, test_width, test_height])
 
     img = Image.open(imagesPath[0]).convert('RGB')
     img = img.resize((test_width, test_height))
-    img.save('fuck.jpg')
+    img.save('../Assets/Test/fuck.jpg')
 
     originalImg = img
 
@@ -122,7 +122,7 @@ if __name__ == '__main__':
     classesName = list()
     classesName.append('ape')
     
-    img = cv2.imread('LINEMOD/ape/JPEGImages/000068.jpg')
+    img = cv2.imread('../Assets/singleshotpose/LINEMOD/ape/JPEGImages/000000.jpg')
 
     img_width = img.shape[1]
     img_height = img.shape[0]
@@ -134,4 +134,4 @@ if __name__ == '__main__':
     #print('-------------------------------')
     #print(output1)
 
-    plot_boxes_cv2(img, output1, 'fuck.jpg', classesName)
+    plot_boxes_cv2(img, output1, '../Assets/Test/fuck.jpg', classesName)

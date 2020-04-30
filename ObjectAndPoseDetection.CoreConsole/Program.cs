@@ -7,7 +7,7 @@ namespace ObjectAndPoseDetection.CoreConsole
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            Runner.Run(null);
         }
     }
 }
