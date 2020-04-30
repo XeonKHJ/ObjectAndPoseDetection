@@ -28,6 +28,8 @@ namespace ObjectAndPoseDetection.Detector
             var modelScorer = new OnnxModelScorer(imagesFolder, modelFilePath, mlContext);
             var probabilities = modelScorer.Score(imageDataView);
 
+            OutputParser outputParser = new OutputParser(probabilities);
+
             YoloOutoutParser parser = new YoloOutoutParser();
 
             var abc = probabilities.Count();

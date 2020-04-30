@@ -2,11 +2,11 @@ using System;
 using System.Drawing;
 using System.Collections.Generic;
 
-public class CubicBoudingBox
+public class CubicBoundingBox
 {
     public string Identity{set;get;}
-    private Point[] _controlPoints = new Point[9];
-    public Point[] ControlPoint
+    private PointF[] _controlPoints = new PointF[9];
+    public PointF[] ControlPoint
     {
         get
         {

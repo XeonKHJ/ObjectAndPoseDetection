@@ -90,7 +90,7 @@ if __name__ == '__main__':
     #imgTensor = torch.tensor([1, 3, test_width, test_height])
 
     img = Image.open(imagesPath[0]).convert('RGB')
-    #timg = img.resize((test_width, test_height))
+    img = img.resize((test_width, test_height))
     img.save('../Assets/Test/fuck.jpg')
 
     originalImg = img

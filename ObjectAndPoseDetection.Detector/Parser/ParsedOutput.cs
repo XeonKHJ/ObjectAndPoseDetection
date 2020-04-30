@@ -8,5 +8,5 @@ public class ParsedOutput
     public float[] Probabilities{set;get;}
     public Point CenterPoint{set;get;}
 
-    public CubicBoudingBox BoudingBox{set;get;} = new CubicBoudingBox();
+    public CubicBoundingBox BoudingBox{set;get;} = new CubicBoundingBox();
 }
