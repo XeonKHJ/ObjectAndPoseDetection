@@ -11,6 +11,8 @@ using Microsoft.ML.Transforms;
 using System.Data;
 using System.Numerics;
 using System.CodeDom;
+using System.Drawing;
+using System.Threading.Tasks;
 
 namespace ObjectAndPoseDetection.Detector
 {
@@ -49,11 +51,7 @@ namespace ObjectAndPoseDetection.Detector
             var data = mlContext.Data.LoadFromEnumerable(new List<ImageNetData>());
             Action<ImagePixels, ImagePixels> mapping = (input, output) =>
             {
-                float[] unifiedEncoding = new float[4];
-
-                var indices = input.Pixels.Select(x => x / 255);
-
-                output.Pixels = indices.ToArray();
+                output.Pixels = input.Pixels.Select(x => x / 255).ToArray();
             };
 
             var outputSchemaDefinition = SchemaDefinition.Create(typeof(ImagePixels));
@@ -82,9 +80,41 @@ namespace ObjectAndPoseDetection.Detector
 
             IDataView scoredData = model.Transform(testData);
 
-            IEnumerable<float[]> probabilities = scoredData.GetColumn<float[]>(TinyYoloModelSettings.ModelOutput);
+            List<float[]> probabilities = scoredData.GetColumn<float[]>(TinyYoloModelSettings.ModelOutput).ToList();
 
-            return probabilities;
+            
+            //1、先分割成像素
+            var probability = probabilities.First();
+            int segementsPerRow = 13;
+            int segementsPerColumn = 13;
+            int segements = segementsPerRow * segementsPerColumn;
+            int outputVectorLengthPerSegement = probability.Length / segements;
+            Dictionary<Point, float[]> outputs = new Dictionary<Point, float[]>();
+            for (int i = 0; i < probability.Length; ++i)
+            {
+                //确定是第几个数
+                int segementNo = i % segements;
+
+                //确定是在第几个分片中
+                int outputVectorPerSegementOrder = i / segements;
+
+                //确定是第几行
+                int rowNo = segementNo / segementsPerRow;
+
+                //确定是第几列
+                int columnNo = segementNo % segementsPerRow;
+
+                var cordinate = new Point(columnNo, rowNo);
+
+                if (!outputs.ContainsKey(cordinate))
+                {
+                    outputs[cordinate] = new float[outputVectorLengthPerSegement];
+                }
+
+                outputs[cordinate][outputVectorPerSegementOrder] = probability[i];
+            }
+
+            return probabilities.AsEnumerable();
         }
 
         public IEnumerable<float[]> Score(IDataView data)

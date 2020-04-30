@@ -85,12 +85,12 @@ if __name__ == '__main__':
     test_width = 416
     test_height = 416
 
-    imagesPath = ['../Assets/singleshotpose/LINEMOD/ape/JPEGImages/000000.jpg']
+    imagesPath = ['../Assets/images/red.jpg']
 
     #imgTensor = torch.tensor([1, 3, test_width, test_height])
 
     img = Image.open(imagesPath[0]).convert('RGB')
-    img = img.resize((test_width, test_height))
+    #timg = img.resize((test_width, test_height))
     img.save('../Assets/Test/fuck.jpg')
 
     originalImg = img
@@ -108,6 +108,7 @@ if __name__ == '__main__':
     output = model(data).data
     
     print("Original Output: \n", output)
+    print("Original Output 0:\n", output[0][0])
 
     output = get_region_boxes(output, 1, 9)
 
