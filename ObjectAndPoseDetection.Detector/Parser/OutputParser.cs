@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Google.Protobuf.Reflection;
 using MathNet.Numerics;
 using MathNet.Numerics.RootFinding;
+using Newtonsoft.Json;
 
 public class OutputParser
 {
@@ -23,6 +25,18 @@ public class OutputParser
 
         var batchOutpus = ClassifyOutputBySegements(_originalOutputs);
         var boundingBoxes = ExtractBoundingBox(batchOutpus.First());
+        var class_confs = GetIdentification(batchOutpus.First());
+    }
+
+    private float[] GetIdentification(Dictionary<Point, float[]> dictionary)
+    {
+        int classOut = 1;
+
+        foreach(var pair in dictionary)
+        {
+            float[] probilities = pair.Value.Skip(2 * 9 + 1).Take(classOut).ToArray();
+        }
+        return null;
     }
 
     private List<CubicBoundingBox> cubicBoudingBoxes;
