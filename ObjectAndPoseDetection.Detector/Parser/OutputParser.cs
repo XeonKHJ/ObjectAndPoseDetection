@@ -28,15 +28,25 @@ public class OutputParser
         var class_confs = GetIdentification(batchOutpus.First());
     }
 
-    private float[] GetIdentification(Dictionary<Point, float[]> dictionary)
+    private List<float[]> GetIdentification(Dictionary<Point, float[]> dictionary)
     {
         int classOut = 1;
-
+        List<float[]> results = new List<float[]>();
         foreach(var pair in dictionary)
         {
             float[] probilities = pair.Value.Skip(2 * 9 + 1).Take(classOut).ToArray();
+            results.Add(Softmax(probilities));
         }
-        return null;
+        return results;
+    }
+    
+    private float[] Softmax(float[] values)
+    {
+        var maxVal = values.Max();
+        var exp = values.Select(v => Math.Exp(v - maxVal));
+        var sumExp = exp.Sum();
+
+        return exp.Select(v => (float)(v / sumExp)).ToArray();
     }
 
     private List<CubicBoundingBox> cubicBoudingBoxes;
