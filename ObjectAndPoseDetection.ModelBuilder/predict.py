@@ -111,6 +111,7 @@ if __name__ == '__main__':
     print("Original Output 0:\n", output[0][0])
 
     output = get_region_boxes(output, 1, 9)
+    print("Output: \n", output)
 
     output1 = list()
 

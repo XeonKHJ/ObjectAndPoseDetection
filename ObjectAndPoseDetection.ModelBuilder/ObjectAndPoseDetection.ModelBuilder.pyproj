@@ -31,7 +31,6 @@
     <Content Include="py2\LICENSE.txt" />
     <Content Include="py2\multi_obj_pose_estimation\cfg\train_occlusion.txt" />
     <Content Include="py2\multi_obj_pose_estimation\PLACE__~backup_multi~__FOLDER_HERE.txt" />
-    <Content Include="trained\apeOutput.txt" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="cfg.py" />
@@ -79,7 +78,6 @@
     <Folder Include="py2" />
     <Folder Include="py2\multi_obj_pose_estimation" />
     <Folder Include="py2\multi_obj_pose_estimation\cfg" />
-    <Folder Include="trained" />
   </ItemGroup>
   <ItemGroup>
     <Interpreter Include="SingleShotPoseEnv\">

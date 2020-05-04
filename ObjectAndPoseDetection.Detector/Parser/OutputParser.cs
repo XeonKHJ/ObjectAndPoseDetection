@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -7,6 +8,7 @@ using System.Threading.Tasks;
 using Google.Protobuf.Reflection;
 using MathNet.Numerics;
 using MathNet.Numerics.RootFinding;
+using Microsoft.ML.Trainers;
 using Newtonsoft.Json;
 
 public class OutputParser
@@ -24,18 +26,53 @@ public class OutputParser
         }
 
         var batchOutpus = ClassifyOutputBySegements(_originalOutputs);
-        var boundingBoxes = ExtractBoundingBox(batchOutpus.First());
+
+        //选择有物体的方块
+        //获取信度
         var class_confs = GetIdentification(batchOutpus.First());
+
+        //计算信度
+        var det_conf = GetConfidence(batchOutpus.First());
+
+        var confs = (from c in class_confs
+                     select new KeyValuePair<Point, float>(c.Key, det_conf[c.Key] * class_confs[c.Key].First())).ToArray();
+
+        Point maxConfCordniate;
+        float maxConf = float.MinValue;
+        foreach(var confPair in confs)
+        {
+            var conf = confPair.Value;
+            var confCordinate = confPair.Key;
+            if(conf > maxConf)
+            {
+                maxConf = conf;
+                maxConfCordniate = confCordinate;
+            }
+        }
+
+        //获取这些方块的边框
+        var boundingBoxes = ExtractBoundingBox(batchOutpus.First());
+
     }
 
-    private List<float[]> GetIdentification(Dictionary<Point, float[]> dictionary)
+    private int classOut = 1;
+    private int anchorCount = 1;
+    private Dictionary<Point, float> GetConfidence(Dictionary<Point, float[]> dictionary)
     {
-        int classOut = 1;
-        List<float[]> results = new List<float[]>();
+        Dictionary<Point, float> confs = new Dictionary<Point, float>();
+        foreach(var pair in dictionary)
+        {
+            confs.Add(pair.Key, Sigmoid(pair.Value[2 * 9]));
+        }
+        return confs;
+    }
+    private Dictionary<Point, float[]> GetIdentification(Dictionary<Point, float[]> dictionary)
+    {
+        Dictionary<Point, float[]> results = new Dictionary<Point, float[]>();
         foreach(var pair in dictionary)
         {
             float[] probilities = pair.Value.Skip(2 * 9 + 1).Take(classOut).ToArray();
-            results.Add(Softmax(probilities));
+            results.Add(pair.Key ,Softmax(probilities));
         }
         return results;
     }
@@ -95,30 +132,43 @@ public class OutputParser
         return batchOutputs;
     }
 
-    private List<CubicBoundingBox> ExtractBoundingBox(Dictionary<Point, float[]> outputs)
+    /// <summary>
+    /// 暂时只能先处理锚为1的。
+    /// </summary>
+    /// <param name="outputs"></param>
+    /// <returns></returns>
+    private Dictionary<Point, List<CubicBoundingBox>> ExtractBoundingBox(Dictionary<Point, float[]> outputs)
     {
-        List<CubicBoundingBox> boxes = new List<CubicBoundingBox>();
+       
+        Dictionary<Point, List<CubicBoundingBox>> boxesInCells = new Dictionary<Point, List<CubicBoundingBox>>();
+        int outputCountPerAnchor = 9 * 2 + classOut + 1;
         foreach (var output in outputs)
         {
-            var outputValue = output.Value;
-
-            //先算信心函数
-            var confidentValue = Sigmoid(outputValue[2 * 9]);
-
-            PointF centerPoint = new PointF(Sigmoid(outputValue[0]), Sigmoid(outputValue[1]));
-            CubicBoundingBox cubicBoundingBoxes = new CubicBoundingBox();
-
-            cubicBoundingBoxes.ControlPoint[8] = centerPoint;
-
-            for (int i = 2; i < 2 + 8 * 2; i+=2)
+            List<CubicBoundingBox> boxes = new List<CubicBoundingBox>();
+            for (int i = 0; i < anchorCount; ++i)
             {
-                PointF point = new PointF(Sigmoid(outputValue[i]), Sigmoid(outputValue[i + 1]));
-                cubicBoundingBoxes.ControlPoint[i / 2 - 1] = point;
-            }
+                int anchorOffset = i * outputCountPerAnchor;
+                var outputValue = output.Value;
 
-            boxes.Add(cubicBoundingBoxes);
+                //先算信心函数
+                var confidentValue = Sigmoid(outputValue[2 * 9 + anchorOffset]);
+
+                PointF centerPoint = new PointF(Sigmoid(outputValue[0 + anchorOffset]) + output.Key.X, Sigmoid(outputValue[1 + anchorOffset]) + output.Key.Y);
+                CubicBoundingBox cubicBoundingBoxes = new CubicBoundingBox();
+
+                cubicBoundingBoxes.ControlPoint[8] = centerPoint;
+
+                for (int j = 2; j < 2 + 8 * 2; j += 2)
+                {
+                    PointF point = new PointF(outputValue[j + anchorOffset] + output.Key.X, outputValue[j + 1 + anchorOffset] + output.Key.Y);
+                    cubicBoundingBoxes.ControlPoint[j / 2 - 1] = point;
+                }
+
+                boxes.Add(cubicBoundingBoxes);
+            }
+            boxesInCells.Add(output.Key, boxes);
         }
-        return boxes;
+        return boxesInCells;
     }
 
     private static float Sigmoid(double value)
