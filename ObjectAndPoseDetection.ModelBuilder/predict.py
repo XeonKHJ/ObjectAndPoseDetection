@@ -14,7 +14,7 @@ from MeshPly import MeshPly
 
 def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
     import cv2
-    colors = torch.FloatTensor([[1,0,1],[0,0,1],[0,1,1],[0,1,0],[1,1,0],[1,0,0]]);
+    colors = torch.FloatTensor([[1,0,1],[0,0,1],[0,1,1],[0,1,0],[1,1,0],[1,0,0]])
     def get_color(c, x, max_val):
         ratio = float(x)/max_val * 5
         i = int(math.floor(ratio))
