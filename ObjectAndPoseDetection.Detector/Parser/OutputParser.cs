@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 
 public class OutputParser
 {
+    Size SegementsSize{set;get;} = new Size(13, 13);
     private List<float[]> _originalOutputs = new List<float[]>();
     private Dictionary<Point, ParsedOutput> Results;
     public OutputParser(IEnumerable<float[]> nnOutputs)
@@ -26,12 +27,13 @@ public class OutputParser
         }
 
         var batchOutpus = ClassifyOutputBySegements(_originalOutputs);
+        
 
-        //Ñ¡ÔñÓÐÎïÌåµÄ·½¿é
-        //»ñÈ¡ÐÅ¶È
+        //Ñ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä·ï¿½ï¿½ï¿½
+        //ï¿½ï¿½È¡ï¿½Å¶ï¿½
         var class_confs = GetIdentification(batchOutpus.First());
 
-        //¼ÆËãÐÅ¶È
+        //ï¿½ï¿½ï¿½ï¿½ï¿½Å¶ï¿½
         var det_conf = GetConfidence(batchOutpus.First());
 
         var confs = (from c in class_confs
@@ -50,11 +52,11 @@ public class OutputParser
             }
         }
 
-        //»ñÈ¡ÕâÐ©·½¿éµÄ±ß¿ò
+        //ï¿½ï¿½È¡ï¿½ï¿½Ð©ï¿½ï¿½ï¿½ï¿½Ä±ß¿ï¿½
         var boundingBoxes = ExtractBoundingBox(batchOutpus.First());
-
+        BoundingBoxes = boundingBoxes[maxConfCordniate];
     }
-
+    public List<CubicBoundingBox> BoundingBoxes{private set; get;}
     private int classOut = 1;
     private int anchorCount = 1;
     private Dictionary<Point, float> GetConfidence(Dictionary<Point, float[]> dictionary)
@@ -91,7 +93,7 @@ public class OutputParser
     public List<CubicBoundingBox> CubicBoudingBox { get; }
     private List<Dictionary<Point, float[]>> ClassifyOutputBySegements(IEnumerable<float[]> probabilities)
     {
-        //1¡¢ÏÈ·Ö¸î³ÉÏñËØ
+        //1ï¿½ï¿½ï¿½È·Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         int segementsPerRow = 13;
         int segementsPerColumn = 13;
         int segements = segementsPerRow * segementsPerColumn;
@@ -104,16 +106,16 @@ public class OutputParser
             Dictionary<Point, float[]> outputs = new Dictionary<Point, float[]>();
             for (int i = 0; i < probability.Length; ++i)
             {
-                //È·¶¨ÊÇµÚ¼¸¸öÊý
+                //È·ï¿½ï¿½ï¿½ÇµÚ¼ï¿½ï¿½ï¿½ï¿½ï¿½
                 int segementNo = i % segements;
 
-                //È·¶¨ÊÇÔÚµÚ¼¸¸ö·ÖÆ¬ÖÐ
+                //È·ï¿½ï¿½ï¿½ï¿½ï¿½ÚµÚ¼ï¿½ï¿½ï¿½ï¿½ï¿½Æ¬ï¿½ï¿½
                 int outputVectorPerSegementOrder = i / segements;
 
-                //È·¶¨ÊÇµÚ¼¸ÐÐ
+                //È·ï¿½ï¿½ï¿½ÇµÚ¼ï¿½ï¿½ï¿½
                 int rowNo = segementNo / segementsPerRow;
 
-                //È·¶¨ÊÇµÚ¼¸ÁÐ
+                //È·ï¿½ï¿½ï¿½ÇµÚ¼ï¿½ï¿½ï¿½
                 int columnNo = segementNo % segementsPerRow;
 
                 var cordinate = new Point(columnNo, rowNo);
@@ -122,10 +124,8 @@ public class OutputParser
                 {
                     outputs[cordinate] = new float[outputVectorLengthPerSegement];
                 }
-
                 outputs[cordinate][outputVectorPerSegementOrder] = probability[i];
             }
-
             batchOutputs.Add(outputs);
         }
 
@@ -133,7 +133,7 @@ public class OutputParser
     }
 
     /// <summary>
-    /// ÔÝÊ±Ö»ÄÜÏÈ´¦ÀíÃªÎª1µÄ¡£
+    /// ï¿½ï¿½Ê±Ö»ï¿½ï¿½ï¿½È´ï¿½ï¿½ï¿½ÃªÎª1ï¿½Ä¡ï¿½
     /// </summary>
     /// <param name="outputs"></param>
     /// <returns></returns>
@@ -150,17 +150,17 @@ public class OutputParser
                 int anchorOffset = i * outputCountPerAnchor;
                 var outputValue = output.Value;
 
-                //ÏÈËãÐÅÐÄº¯Êý
-                var confidentValue = Sigmoid(outputValue[2 * 9 + anchorOffset]);
+                //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Äºï¿½ï¿½ï¿½
+                //var confidentValue = Sigmoid(outputValue[2 * 9 + anchorOffset]);
 
-                PointF centerPoint = new PointF(Sigmoid(outputValue[0 + anchorOffset]) + output.Key.X, Sigmoid(outputValue[1 + anchorOffset]) + output.Key.Y);
+                PointF centerPoint = new PointF((Sigmoid(outputValue[0 + anchorOffset]) + output.Key.X)/SegementsSize.Width, (Sigmoid(outputValue[1 + anchorOffset]) + output.Key.Y)/SegementsSize.Height);
                 CubicBoundingBox cubicBoundingBoxes = new CubicBoundingBox();
 
                 cubicBoundingBoxes.ControlPoint[8] = centerPoint;
 
                 for (int j = 2; j < 2 + 8 * 2; j += 2)
                 {
-                    PointF point = new PointF(outputValue[j + anchorOffset] + output.Key.X, outputValue[j + 1 + anchorOffset] + output.Key.Y);
+                    PointF point = new PointF((outputValue[j + anchorOffset] + output.Key.X)/SegementsSize.Width, (outputValue[j + 1 + anchorOffset] + output.Key.Y)/SegementsSize.Height);
                     cubicBoundingBoxes.ControlPoint[j / 2 - 1] = point;
                 }
 

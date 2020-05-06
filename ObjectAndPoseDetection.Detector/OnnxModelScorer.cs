@@ -56,9 +56,9 @@ namespace ObjectAndPoseDetection.Detector
 
             var outputSchemaDefinition = SchemaDefinition.Create(typeof(ImagePixels));
             outputSchemaDefinition["image"].ColumnType = new VectorDataViewType(NumberDataViewType.Single, 3, 416, 416);
-
+            
             var pipeline = mlContext.Transforms.LoadImages(outputColumnName: "image", imageFolder: "", inputColumnName: nameof(ImageNetData.ImagePath))
-                                    .Append(mlContext.Transforms.ResizeImages("image", ImageNetSettings.imageWidth, ImageNetSettings.imageHeight, "image"))
+                                    .Append(mlContext.Transforms.ResizeImages("image", ImageNetSettings.imageWidth, ImageNetSettings.imageHeight, "image", ImageResizingEstimator.ResizingKind.Fill))
                                     .Append(mlContext.Transforms.ExtractPixels(outputColumnName: "image", colorsToExtract: ImagePixelExtractingEstimator.ColorBits.Rgb))
                                     .Append(mlContext.Transforms.CustomMapping(mapping, null, outputSchemaDefinition:outputSchemaDefinition))
                                     .Append(mlContext.Transforms.ApplyOnnxModel(modelFile:modelLocation, outputColumnNames: new[] { TinyYoloModelSettings.ModelOutput}, inputColumnNames: new[] { "image" }));
