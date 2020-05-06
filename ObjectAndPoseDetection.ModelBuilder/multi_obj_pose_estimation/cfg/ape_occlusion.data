@@ -1,5 +1,5 @@
-valid  = ../LINEMOD/ape/test_occlusion.txt
-mesh = ../LINEMOD/ape/ape.ply
+valid  = ../Assets/singleshotpose/LINEMOD/ape/test_occlusion.txt
+mesh = ../Assets/singleshotpose/LINEMOD/ape/ape.ply
 backup = backup_multi
 name = ape
 diam = 0.103

@@ -59,7 +59,7 @@ def valid(datacfg, cfgfile, weightfile):
 
     # Compute-related Parameters
     use_cuda = True # whether to use cuda or no
-    kwargs = {'num_workers': 4, 'pin_memory': True} # number of workers etc.
+    kwargs = {'num_workers': 1, 'pin_memory': True} # number of workers etc.
 
     # Specicy model, load pretrained weights, pass to GPU and set the module in evaluation mode
     model = Darknet(cfgfile)
@@ -69,7 +69,7 @@ def valid(datacfg, cfgfile, weightfile):
 
     # Get the dataloader for the test dataset
     valid_dataset = dataset_multi.listDataset(valid_images, shape=(model.width, model.height), shuffle=False, objclass=name, transform=transforms.Compose([transforms.ToTensor(),]))
-    test_loader   = torch.utils.data.DataLoader(valid_dataset, batch_size=1, shuffle=False, **kwargs) 
+    test_loader   = torch.utils.data.DataLoader(valid_dataset, batch_size=1, shuffle=False) 
 
     # Iterate through test batches (Batch size for test data is 1)
     logging('Testing {}...'.format(name))
@@ -157,13 +157,13 @@ def valid(datacfg, cfgfile, weightfile):
         # Print test statistics
         logging('   Acc using {} px 2D Projection = {:.2f}%'.format(px_threshold, acc))
 
-if __name__ == '__main__' and __package__ is None:
+if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='SingleShotPose')
     parser.add_argument('--modelcfg', type=str, default='cfg/yolo-pose-multi.cfg') # network config
     parser.add_argument('--initweightfile', type=str, default='backup_multi/model_backup.weights') # initialization weights
     args = parser.parse_args()
-    datacfg = 'cfg/ape_occlusion.data'
+    datacfg = 'multi_obj_pose_estimation/cfg/ape_occlusion.data'
     valid(datacfg, args.modelcfg, args.initweightfile)
     datacfg = 'cfg/can_occlusion.data'
     valid(datacfg, args.modelcfg, args.initweightfile)
