@@ -49,4 +49,16 @@ if __name__ == '__main__':
     output = model(data)
     print(output)
 
+    #
+    net_options = parse_cfg(cfgfile)[0]
+    loss_options = parse_cfg(cfgfile)[-1]
+
+    conf_thresh   = float(net_options['conf_thresh'])
+    num_keypoints = int(net_options['num_keypoints'])
+    num_classes   = int(loss_options['classes'])
+    num_anchors   = int(loss_options['num'])
+    anchors       = [float(anchor) for anchor in loss_options['anchors'].split(',')]
+
+    all_boxes = get_multi_region_boxes(output, conf_thresh, num_classes, num_keypoints, anchors, num_anchors, int(trgt[0][0]), only_objectness=0);
+    
     
