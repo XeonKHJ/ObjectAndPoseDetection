@@ -19,27 +19,34 @@ from MeshPly import MeshPly
 
 
 if __name__ == '__main__':
-    datacfg = 'cfg/ape.data'
-    modelcfg = 'cfg/yolo-pose.cfg'
-    weightfile = '../Assets/trained/ape.weights'
+    #datacfg = 'cfg/ape.data'
+    modelcfg = 'multi_obj_pose_estimation/cfg/yolo-pose-multi.cfg'
+    weightfile = '../Assets/trained/multi.weights'
 
     model = Darknet(modelcfg)
     model.load_weights(weightfile)
+    model = model.cuda()
     model.eval()
 
     test_width = 416
     test_height = 416
 
-    imagesPath = ['../Assets/images/red.jpg']
+    imagesPath = ['../Assets/singleshotpose/LINEMOD/benchvise/JPEGImages/000000.jpg']
 
     #imgTensor = torch.tensor([1, 3, test_width, test_height])
 
     img = Image.open(imagesPath[0]).convert('RGB')
     img = img.resize((test_width, test_height))
-    img.save('../Assets/Test/fuck.jpg')
 
     originalImg = img
 
     img = transforms.ToTensor()(img)
     imgTensor = torch.zeros([1, img.size(0), img.size(1), img.size(2)])
     imgTensor[0] = img
+
+    data = imgTensor.cuda()
+
+    output = model(data)
+    print(output)
+
+    
