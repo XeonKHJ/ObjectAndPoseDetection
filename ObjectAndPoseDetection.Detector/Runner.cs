@@ -38,7 +38,7 @@ namespace ObjectAndPoseDetection.Detector
 
             var boundingBoxes = probabilities.Select(probability => parser.ParseOutputs(probability))
                                              .Select(boxes => parser.FilterBoundingBoxes(boxes, 5, .5f)).ToList();*/
-            DrawBoundingBox(Path.Combine(imagesFolder, "000000.jpg"), null, "fuckoff.jpg", boxes);
+            DrawBoundingBox(Path.Combine(imagesFolder, "000005.jpg"), null, "fuckoff.jpg", boxes);
         }
 
         public static string GetAbsolutePath(string relativePath)

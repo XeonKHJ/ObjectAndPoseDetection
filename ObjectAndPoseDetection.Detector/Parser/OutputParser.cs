@@ -94,6 +94,7 @@ public class OutputParser
             }
         }
 
+        BoundingBoxes = remainedBoxes;
 
         //淘汰掉所有信度小于阈值的锚
 
