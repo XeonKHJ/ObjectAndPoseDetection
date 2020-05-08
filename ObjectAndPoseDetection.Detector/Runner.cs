@@ -29,7 +29,7 @@ namespace ObjectAndPoseDetection.Detector
             var modelScorer = new OnnxModelScorer(imagesFolder, modelFilePath, mlContext);
             var probabilities = modelScorer.Score(imageDataView);
 
-            OutputParser outputParser = new OutputParser(probabilities);
+            OutputParser outputParser = new OutputParser(probabilities, 13, 5);
             var boxes = outputParser.BoundingBoxes;
             /*
             YoloOutoutParser parser = new YoloOutoutParser();

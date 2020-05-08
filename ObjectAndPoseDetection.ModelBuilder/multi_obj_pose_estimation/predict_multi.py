@@ -104,7 +104,7 @@ if __name__ == '__main__':
     data = imgTensor.cuda()
 
     output = model(data)
-    #print(output)
+    print("originalOUtput:\n", output)
 
     #
     net_options = parse_cfg(modelcfg)[0]
