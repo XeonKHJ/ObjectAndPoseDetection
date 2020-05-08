@@ -29,11 +29,8 @@ public class OutputParser
         var batchOutpus = ClassifyOutputBySegements(_originalOutputs);
         
 
-        //ѡ��������ķ���
-        //��ȡ�Ŷ�
         var class_confs = GetIdentification(batchOutpus.First());
 
-        //�����Ŷ�
         var det_conf = GetConfidence(batchOutpus.First());
 
         var confs = (from c in class_confs
@@ -52,12 +49,12 @@ public class OutputParser
             }
         }
 
-        //��ȡ��Щ����ı߿�
+        //提取边框
         var boundingBoxes = ExtractBoundingBox(batchOutpus.First());
         BoundingBoxes = boundingBoxes[maxConfCordniate];
     }
     public List<CubicBoundingBox> BoundingBoxes{private set; get;}
-    private int classOut = 1;
+    private int classOut = 13;
     private int anchorCount = 1;
     private Dictionary<Point, float> GetConfidence(Dictionary<Point, float[]> dictionary)
     {

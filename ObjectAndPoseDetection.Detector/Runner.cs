@@ -16,7 +16,7 @@ namespace ObjectAndPoseDetection.Detector
         {
             var assetsRelativePath = @"../../../../Assets";
             string assetsPath = GetAbsolutePath(assetsRelativePath);
-            var modelFilePath = Path.Combine(assetsPath, "OnnxModel", "SingleObjectApe.onnx");
+            var modelFilePath = Path.Combine(assetsPath, "OnnxModel", "MultiObjectDetectionModel.onnx");
             var imagesFolder = Path.Combine(assetsPath, "images");
             var outputFolder = Path.Combine(assetsPath, "images", "output");
 

@@ -317,17 +317,22 @@ def get_multi_region_boxes(output, conf_thresh, num_classes, num_keypoints, anch
         for cy in range(h):
             for cx in range(w):
                 for i in range(num_anchors):
+
+                    #这边的indconf
                     ind = b*sz_hwa + i*sz_hw + cy*w + cx
+
                     det_conf =  det_confs[ind]
                     if only_objectness:
                         conf = det_confs[ind]
                     else:
                         conf = det_confs[ind] * cls_max_confs[ind]
                     
+                    #用来找到概率最高的锚的所在格，如果后续该类什么盒都没匹配的时候，用指定的类画出一个盒
                     if (det_confs[ind] > max_conf) and (cls_confs[ind, correspondingclass] > max_cls_conf):
                         max_conf = det_confs[ind]
                         max_cls_conf = cls_confs[ind, correspondingclass]
-                        max_ind = ind                  
+                        max_ind = ind 
+                    #上述这部分感觉在应用过程中不会用到
     
                     if conf > conf_thresh:
                         bcx = list()
@@ -352,6 +357,8 @@ def get_multi_region_boxes(output, conf_thresh, num_classes, num_keypoints, anch
                                     box.append(c)
                         boxes.append(box)
         if (len(boxes) == 0) or (not (correspondingclass in np.array(boxes)[:,2*num_keypoints+2])):
+            # 如果没有任何边框盒                       如果指定的类没有在出现的任何盒子中   
+            # 则将有最大信值的分片的结果找出来添加进去                    
             bcx = list()
             bcy = list()
             for j in range(num_keypoints):

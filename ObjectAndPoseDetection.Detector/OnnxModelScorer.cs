@@ -82,8 +82,6 @@ namespace ObjectAndPoseDetection.Detector
 
             List<float[]> probabilities = scoredData.GetColumn<float[]>(TinyYoloModelSettings.ModelOutput).ToList();
 
-            
-
             return probabilities.AsEnumerable();
         }
 

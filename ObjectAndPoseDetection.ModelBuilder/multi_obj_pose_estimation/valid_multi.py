@@ -117,6 +117,7 @@ def valid(datacfg, cfgfile, weightfile):
                 # If the prediction has the highest confidence, choose it as our prediction
                 best_conf_est = -sys.maxsize
                 for j in range(len(boxes)):
+                    #          信度最大                                                类别是当前选择的类别
                     if (boxes[j][2*num_keypoints] > best_conf_est) and (boxes[j][2*num_keypoints+2] == int(truths[k][0])):
                         best_conf_est = boxes[j][2*num_keypoints]
                         box_pr        = boxes[j]
