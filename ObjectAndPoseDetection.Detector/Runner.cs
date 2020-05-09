@@ -31,13 +31,7 @@ namespace ObjectAndPoseDetection.Detector
 
             OutputParser outputParser = new OutputParser(probabilities, 13, 5);
             var boxes = outputParser.BoundingBoxes;
-            /*
-            YoloOutoutParser parser = new YoloOutoutParser();
 
-            var abc = probabilities.Count();
-
-            var boundingBoxes = probabilities.Select(probability => parser.ParseOutputs(probability))
-                                             .Select(boxes => parser.FilterBoundingBoxes(boxes, 5, .5f)).ToList();*/
             DrawBoundingBox(Path.Combine(imagesFolder, "000005.jpg"), null, "fuckoff.jpg", boxes);
         }
 
