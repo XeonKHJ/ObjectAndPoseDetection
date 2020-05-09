@@ -154,6 +154,12 @@
       <Version>6.2.10</Version>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ObjectAndPoseDetection.Detector\ObjectAndPoseDetection.Detector.csproj">
+      <Project>{e9556771-6cac-4a3d-9fe6-b2aee943a86d}</Project>
+      <Name>ObjectAndPoseDetection.Detector</Name>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>

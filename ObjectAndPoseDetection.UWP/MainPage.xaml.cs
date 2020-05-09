@@ -13,6 +13,7 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using Windows.Storage.Pickers;
+using ObjectAndPoseDetection.Detector;
 
 // https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x804 上介绍了“空白页”项模板
 
@@ -31,18 +32,20 @@ namespace ObjectAndPoseDetection.UWP
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
             var picker = new FolderPicker();
+            picker.SuggestedStartLocation = PickerLocationId.Desktop;
+            picker.FileTypeFilter.Add("*");
             var chosenFolder = await picker.PickSingleFolderAsync();
 
             if(chosenFolder != null)
             {
-                //DetectObjectPose(chosenFolder.Path);
+                DetectObjectPose(chosenFolder.Path);
             }
         }
 
         private void DetectObjectPose(string path)
         {
-            //ObjectDetector objectDetector = new ObjectDetector("../Assets/OnnxModel/MultiObjectDetectionModel.onnx");
-            //var boxes = objectDetector.DetectFromFolder(path);
+            ObjectDetector objectDetector = new ObjectDetector("../Assets/OnnxModel/MultiObjectDetectionModel.onnx");
+            var boxes = objectDetector.DetectFromFolder(path);
         }
     }
 }

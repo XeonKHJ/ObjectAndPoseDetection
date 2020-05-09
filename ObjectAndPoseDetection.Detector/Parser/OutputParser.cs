@@ -9,8 +9,6 @@ using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using System.Xml.Schema;
 using Google.Protobuf.Reflection;
-using MathNet.Numerics;
-using MathNet.Numerics.RootFinding;
 using Microsoft.ML.Trainers;
 using Newtonsoft.Json;
 
