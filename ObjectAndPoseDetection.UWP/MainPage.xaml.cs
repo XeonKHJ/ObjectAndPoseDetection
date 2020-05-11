@@ -20,7 +20,6 @@ using ObjectAndPoseDetection.Detector.YoloParser;
 using Windows.AI.MachineLearning;
 using Windows.Graphics.Imaging;
 using Windows.Media;
-using System.Drawing;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.Media.Transcoding;
 using System.Threading.Tasks;
@@ -29,6 +28,7 @@ using Windows.Storage.Streams;
 using Microsoft.Graphics.Canvas.Brushes;
 using System.Numerics;
 using Windows.Graphics.Display;
+using Windows.UI;
 
 // https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x804 上介绍了“空白页”项模板
 
@@ -47,15 +47,15 @@ namespace ObjectAndPoseDetection.UWP
 
         private async void LoadModel()
         {
-            var onnxFile = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/SingelObjectApeModelV8.onnx"));
+            var onnxFile = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/MultiObjectDetectionModelv8.onnx"));
             model = await MultiObjectDetectionModelv8Model.CreateFromStreamAsync(onnxFile);
         }
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            var picker = new FolderPicker();
+            var picker = new FileOpenPicker();
             picker.SuggestedStartLocation = PickerLocationId.Desktop;
             picker.FileTypeFilter.Add(".jpg");
-            var chosenFolder = await picker.PickSingleFolderAsync();
+            var chosenFolder = await picker.PickSingleFileAsync();
 
             if(chosenFolder != null)
             {
@@ -63,19 +63,23 @@ namespace ObjectAndPoseDetection.UWP
             }
         }
         private MultiObjectDetectionModelv8Model model;
-        private async void DetectObjectPose(StorageFolder folder)
+        private async void DetectObjectPose(StorageFile inputFile)
         {
-            var imageFiles = await folder.GetFilesAsync();
-            var file = imageFiles[0];
+            var file = inputFile;
 
-            SoftwareBitmap softwareBitmap;
-            var transform = new BitmapTransform() { ScaledWidth = 416, ScaledHeight = 416, InterpolationMode = BitmapInterpolationMode.Fant};
+            var transform = new BitmapTransform() { ScaledWidth = 416, ScaledHeight = 416, InterpolationMode = BitmapInterpolationMode.Fant };
             TensorFloat imageTensor;
+
+
+
             using (var stream = await file.OpenAsync(FileAccessMode.Read))
             {
+                BitmapSource bitmapSource = new BitmapImage();
+                bitmapSource.SetSource(stream);
+                InputImage.Source = bitmapSource;
+
                 BitmapDecoder decoder = await BitmapDecoder.CreateAsync(stream);
                 imageTensor = await ConvertImageToTensorAsync(decoder);
-
 
                 var input = new MultiObjectDetectionModelv8Input() { image = imageTensor };
 
@@ -85,7 +89,7 @@ namespace ObjectAndPoseDetection.UWP
                 var content = output.grid.GetAsVectorView().ToArray();
                 List<float[]> abc = new List<float[]>();
                 abc.Add(content);
-                OutputParser outputParser = new OutputParser(abc, 1, 1);
+                OutputParser outputParser = new OutputParser(abc, 13, 5, 0.05f);
                 var boxes = outputParser.BoundingBoxes;
                 DrawBoxes(stream, boxes);
 
@@ -137,12 +141,14 @@ namespace ObjectAndPoseDetection.UWP
             var image = await CanvasBitmap.LoadAsync(device,imageStream);
 
             var offscreen = new CanvasRenderTarget(device, (float)image.Bounds.Width, (float)image.Bounds.Height, 96);
-            CanvasSolidColorBrush brush = new CanvasSolidColorBrush(device, Windows.UI.Color.FromArgb(255, 255, 0, 0));
+            //CanvasSolidColorBrush brush = new CanvasSolidColorBrush(device, Windows.UI.Color.FromArgb(255, 255, 0, 0));
             using(var ds = offscreen.CreateDrawingSession())
             {
                 ds.DrawImage(image);
                 foreach (var box in boxes)
                 {
+                    CanvasSolidColorBrush brush = new CanvasSolidColorBrush(device, Colors.Red);
+
                     var points = (from p in box.ControlPoint
                                  select new Vector2((float)(p.X * image.Bounds.Width), (float)(p.Y * image.Bounds.Height))).ToArray();
                     
@@ -161,30 +167,42 @@ namespace ObjectAndPoseDetection.UWP
                 }
             }
 
-            await Window.Current.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+            BitmapSource bitmapImageSouce;
+            using (var stream = new InMemoryRandomAccessStream())
             {
-                var savepicker = new FileSavePicker();
-                savepicker.FileTypeChoices.Add("png", new List<string> { ".jpg" });
-                var destFile = await savepicker.PickSaveFileAsync();
+                await offscreen.SaveAsync(stream, CanvasBitmapFileFormat.Jpeg);
+                bitmapImageSouce = new BitmapImage();
 
-                var displayInformation = DisplayInformation.GetForCurrentView();
+                stream.Seek(0);
+                await bitmapImageSouce.SetSourceAsync(stream);
 
-                if(destFile != null)
-                {
-                    using(var s =  await destFile.OpenAsync(FileAccessMode.ReadWrite))
-                    {
-                        var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, s);
-                        encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore,
-                            (uint)offscreen.Size.Width,
-                            (uint)offscreen.Size.Height,
-                            displayInformation.LogicalDpi,
-                            displayInformation.LogicalDpi,
-                            offscreen.GetPixelBytes());
+            }
 
-                        await encoder.FlushAsync();
-                    }
-                }
+            await Window.Current.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal,()=>
+            {
+                //var savepicker = new FileSavePicker();
+                //savepicker.FileTypeChoices.Add("JPEG", new List<string> { ".jpg" });
+                //var destFile = await savepicker.PickSaveFileAsync();
 
+                //var displayInformation = DisplayInformation.GetForCurrentView();
+
+                //if(destFile != null)
+                //{
+                //    using(var s =  await destFile.OpenAsync(FileAccessMode.ReadWrite))
+                //    {
+                //var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, s);
+                //encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore,
+                //    (uint)offscreen.Size.Width,
+                //    (uint)offscreen.Size.Height,
+                //    displayInformation.LogicalDpi,
+                //    displayInformation.LogicalDpi,
+                //    offscreen.GetPixelBytes());
+
+                //        await encoder.FlushAsync();
+                //    }
+                //}
+
+                OutputImage.Source = bitmapImageSouce;
             });
         }
     }

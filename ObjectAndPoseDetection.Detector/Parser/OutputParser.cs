@@ -83,13 +83,30 @@ public class OutputParser
         foreach(var pointBoxPair in processedBoxes)
         {
             var point = pointBoxPair.Key;
-            for(int i = 0; i < anchorCount; ++i)
+            var pointAnchorPair = maxClassConfIndexs[point];
+            List<CubicBoundingBox> toAddBoxes = new List<CubicBoundingBox>();
+            for (int i = 0; i < anchorCount; ++i)
             {
+                
                 if (finalConfs[point].ContainsKey(i))
                 {
-                    remainedBoxes.Add(pointBoxPair.Value[i]);
+                    pointBoxPair.Value[i].Identity = pointAnchorPair[i];
+
+                    pointBoxPair.Value[i].Confidence = finalConfs[point][i];
+
+                    var sameIdentityBoxes = (from b in toAddBoxes
+                                             where b.Identity == pointAnchorPair[i] && b.Confidence <= finalConfs[point][i]
+                                             select b).ToArray();
+
+                    //只有非相同身份并且信度没有比自己大的边框存在的情况下，才把自己加进去
+                    if(sameIdentityBoxes.Length != 0 || toAddBoxes.Count == 0)
+                    {
+                        toAddBoxes = toAddBoxes.Except(sameIdentityBoxes).ToList();
+                        toAddBoxes.Add(pointBoxPair.Value[i]);
+                    }
                 }
             }
+            remainedBoxes.AddRange(toAddBoxes);
         }
 
         BoundingBoxes = remainedBoxes;

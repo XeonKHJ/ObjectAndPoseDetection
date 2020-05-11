@@ -4,7 +4,8 @@ using System.Collections.Generic;
 
 public class CubicBoundingBox
 {
-    public string Identity{set;get;}
+    public int Identity{set;get;}
+    public float Confidence { set; get; }
     private PointF[] _controlPoints = new PointF[9];
     public PointF[] ControlPoint
     {
