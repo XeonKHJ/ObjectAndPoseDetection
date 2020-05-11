@@ -22,9 +22,9 @@ namespace ObjectAndPoseDetection.Detector
             
         }
 
-        public List<CubicBoundingBox> DetectFromFolder(string path)
+        public List<CubicBoundingBox> DetectFromFiles(IEnumerable<string> imagePaths, string path)
         {
-            IEnumerable<ImageNetData> images = ImageNetData.ReadFromFile(path);
+            IEnumerable<ImageNetData> images = ImageNetData.ReadFromFiles(imagePaths);
             IDataView imageDataView = mlContext.Data.LoadFromEnumerable(images);
 
             var modelScorer = new OnnxModelScorer(path, onnxPath, mlContext);

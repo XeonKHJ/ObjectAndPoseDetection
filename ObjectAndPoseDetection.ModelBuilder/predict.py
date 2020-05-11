@@ -85,7 +85,7 @@ if __name__ == '__main__':
     test_width = 416
     test_height = 416
 
-    imagesPath = ['../Assets/images/red.jpg']
+    imagesPath = ['../Assets/images/IMG_6757.JPG']
 
     #imgTensor = torch.tensor([1, 3, test_width, test_height])
 
@@ -96,10 +96,11 @@ if __name__ == '__main__':
     originalImg = img
 
     img = transforms.ToTensor()(img)
+    print("image:\n", img*255)
     imgTensor = torch.zeros([1, img.size(0), img.size(1), img.size(2)])
     imgTensor[0] = img
 
-    print(imgTensor)
+    #print(imgTensor * 255)
 
     data = imgTensor.cuda()
     data = Variable(data, volatile=True)
@@ -108,10 +109,10 @@ if __name__ == '__main__':
     output = model(data).data
     
     print("Original Output: \n", output)
-    print("Original Output 0:\n", output[0][0])
+    #print("Original Output 0:\n", output[0][0])
 
     output = get_region_boxes(output, 1, 9)
-    print("Output: \n", output)
+    #print("Output: \n", output)
 
     output1 = list()
 

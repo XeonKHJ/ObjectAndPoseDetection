@@ -77,5 +77,40 @@ namespace ObjectAndPoseDetection.Detector
 
             image.Save("ab.jpg");
         }
+
+        public static Image DrawBoundingBox(Stream inputImageStream, IList<CubicBoundingBox> filteredBoundingBoxes)
+        {
+            Image image = Image.FromStream(inputImageStream);
+            var originalImageHeight = image.Height;
+            var originalImageWidth = image.Width;
+
+            foreach (var box in filteredBoundingBoxes)
+            {
+                var points = (from p in box.ControlPoint
+                              select new PointF(p.X * image.Width, p.Y * image.Height)).ToList();
+                using (Graphics thumbnailGraphic = Graphics.FromImage(image))
+                {
+                    thumbnailGraphic.CompositingQuality = CompositingQuality.HighQuality;
+                    thumbnailGraphic.SmoothingMode = SmoothingMode.HighQuality;
+
+                    Pen pen = new Pen(Color.Red, 1f);
+                    SolidBrush colorBursh = new SolidBrush(Color.Red);
+                    thumbnailGraphic.DrawLine(pen, points[0], points[1]);
+                    thumbnailGraphic.DrawLine(pen, points[0], points[4]);
+                    thumbnailGraphic.DrawLine(pen, points[1], points[5]);
+                    thumbnailGraphic.DrawLine(pen, points[4], points[5]);
+                    thumbnailGraphic.DrawLine(pen, points[5], points[7]);
+                    thumbnailGraphic.DrawLine(pen, points[1], points[3]);
+                    thumbnailGraphic.DrawLine(pen, points[4], points[6]);
+                    thumbnailGraphic.DrawLine(pen, points[0], points[2]);
+                    thumbnailGraphic.DrawLine(pen, points[2], points[6]);
+                    thumbnailGraphic.DrawLine(pen, points[2], points[3]);
+                    thumbnailGraphic.DrawLine(pen, points[3], points[7]);
+                    thumbnailGraphic.DrawLine(pen, points[7], points[6]);
+                }
+            }
+
+            return image;
+        }
     }
 }

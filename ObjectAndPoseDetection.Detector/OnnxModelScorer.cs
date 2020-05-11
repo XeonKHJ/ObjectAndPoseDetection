@@ -13,6 +13,7 @@ using System.Numerics;
 using System.CodeDom;
 using System.Drawing;
 using System.Threading.Tasks;
+using System.ComponentModel.Design;
 
 namespace ObjectAndPoseDetection.Detector
 {
@@ -57,6 +58,8 @@ namespace ObjectAndPoseDetection.Detector
             var outputSchemaDefinition = SchemaDefinition.Create(typeof(ImagePixels));
             outputSchemaDefinition["image"].ColumnType = new VectorDataViewType(NumberDataViewType.Single, 3, 416, 416);
             
+            
+
             var pipeline = mlContext.Transforms.LoadImages(outputColumnName: "image", imageFolder: "", inputColumnName: nameof(ImageNetData.ImagePath))
                                     .Append(mlContext.Transforms.ResizeImages("image", ImageNetSettings.imageWidth, ImageNetSettings.imageHeight, "image", ImageResizingEstimator.ResizingKind.Fill))
                                     .Append(mlContext.Transforms.ExtractPixels(outputColumnName: "image", colorsToExtract: ImagePixelExtractingEstimator.ColorBits.Rgb))
@@ -76,7 +79,7 @@ namespace ObjectAndPoseDetection.Detector
             Console.WriteLine("=====Identify the objects in the images=====");
             Console.WriteLine("");
 
-            var preview = model.Preview(testData);
+            //var preview = model.Preview(testData);
 
             IDataView scoredData = model.Transform(testData);
 

@@ -29,7 +29,7 @@ def exportToOnnx(model, path):
                       input,
                       path,
                       export_params=True,
-                      opset_version=10,
+                      opset_version=8,
                       do_constant_folding=True,
                       input_names=['image'],
                       output_names=['grid'],
@@ -46,8 +46,8 @@ def OpenImageAsTensor(path, height, width):
 if __name__ == "__main__":
     datacfg = 'cfg/ape.data'
     modelcfg = 'cfg/yolo-pose.cfg'
-    weightfile = 'LINEMOD/ape/trained/model.weights'
-    onnxOutputPath = 'onnx/model.onnx'
+    weightfile = '../Assets/trained/ape.weights'
+    onnxOutputPath = '../Assets/OnnxModel/SingelObjectApeModelV8.onnx'
     model = Darknet(modelcfg)
     model.load_weights(weightfile)
     model.eval()

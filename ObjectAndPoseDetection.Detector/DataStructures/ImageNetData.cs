@@ -31,5 +31,10 @@ namespace ObjectAndPoseDetection.Detector.DataStructures
                                 Label = Path.GetFileName(filePath)
                             });
         }
+
+        public static IEnumerable<ImageNetData> ReadFromFiles(IEnumerable<string> filePaths)
+        {
+            return (from p in filePaths select new ImageNetData { ImagePath = p, Label = Path.GetFileName(p) }).ToList();
+        }
     }
 }

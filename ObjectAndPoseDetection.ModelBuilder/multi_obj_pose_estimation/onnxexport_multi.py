@@ -34,7 +34,7 @@ def exportToOnnx(model, path):
                       input,
                       path,
                       export_params=True,
-                      opset_version=10,
+                      opset_version=8,
                       do_constant_folding=True,
                       input_names=['image'],
                       output_names=['grid'],
@@ -51,7 +51,7 @@ def OpenImageAsTensor(path, height, width):
 if __name__ == "__main__":
     modelcfg = 'multi_obj_pose_estimation/cfg/yolo-pose-multi.cfg'
     weightfile = '../Assets/trained/multi.weights'
-    onnxOutputPath = '../Assets/OnnxModel/MultiObjectDetectionModel.onnx'
+    onnxOutputPath = '../Assets/OnnxModel/MultiObjectDetectionModelv8.onnx'
 
     model = Darknet(modelcfg)
     model.load_weights(weightfile)

@@ -237,13 +237,13 @@ def get_region_boxes(output, num_classes, num_keypoints, only_objectness=1, vali
     #中心点
     xs.append(torch.sigmoid(output[0]) + grid_x)
     ys.append(torch.sigmoid(output[1]) + grid_y)
-    print("center xs:\n", xs)
+    #print("center xs:\n", xs)
     for j in range(1,num_keypoints):
         xs.append(output[2*j + 0] + grid_x)
         ys.append(output[2*j + 1] + grid_y)
     
-    print("xs: \n", xs)
-    print("ys: \n", ys)
+    #print("xs: \n", xs)
+    #print("ys: \n", ys)
     #信心
     det_confs = torch.sigmoid(output[2*num_keypoints])
 
@@ -281,7 +281,7 @@ def get_region_boxes(output, num_classes, num_keypoints, only_objectness=1, vali
                         conf = det_confs[ind] * cls_max_confs[ind]
                     
                     if conf > max_conf:
-                        print("h: ", cy, " w: ", cx)
+                        #print("h: ", cy, " w: ", cx)
                         max_conf = conf
                         bcx = list()
                         bcy = list()
