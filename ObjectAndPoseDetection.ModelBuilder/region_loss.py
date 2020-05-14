@@ -27,6 +27,8 @@ def build_targets(pred_corners, target, num_keypoints, num_anchors, num_classes,
     for b in range(nB):
         cur_pred_corners = pred_corners[b*nAnchors:(b+1)*nAnchors].t()
         cur_confs = torch.zeros(nAnchors)
+        #最多有50个格子里有东西
+        #如果发现第二个格子里没有，则跳过
         for t in range(50):
             if target[b][t*num_labels+1] == 0:
                 break
@@ -40,6 +42,7 @@ def build_targets(pred_corners, target, num_keypoints, num_anchors, num_classes,
         conf_mask[b][cur_confs>sil_thresh] = 0
 
 
+    #算准确率
     nGT = 0
     nCorrect = 0
     for b in range(nB):
@@ -128,6 +131,8 @@ class RegionLoss(nn.Module):
         t2 = time.time()
 
         # Build targets
+        #coord_mask为该网格是否有物体，有的话为1
+        #cls_mask是看这个网格是否有物体，有的话为True
         nGT, nCorrect, coord_mask, conf_mask, cls_mask, txs, tys, tconf, tcls = \
                        build_targets(pred_corners, target.data, num_keypoints, nA, nC, nH, nW, self.noobject_scale, self.object_scale, self.thresh, self.seen)
         cls_mask   = (cls_mask == 1)
@@ -146,6 +151,8 @@ class RegionLoss(nn.Module):
         # Create loss
         loss_xs   = list()
         loss_ys   = list()
+
+        #损失函数要计算
         for i in range(num_keypoints):
             loss_xs.append(self.coord_scale * nn.MSELoss(size_average=False)(x[i]*coord_mask, txs[i]*coord_mask)/2.0)
             loss_ys.append(self.coord_scale * nn.MSELoss(size_average=False)(y[i]*coord_mask, tys[i]*coord_mask)/2.0)
