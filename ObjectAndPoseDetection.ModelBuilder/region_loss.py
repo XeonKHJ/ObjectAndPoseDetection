@@ -178,5 +178,5 @@ class RegionLoss(nn.Module):
             print('             total : %f' % (t4 - t0))
 
         print('%d: nGT %d, recall %d, proposals %d, loss: x %f, y %f, conf %f, total %f' % (self.seen, nGT, nCorrect, nProposals, loss_x.item(), loss_y.item(), loss_conf.item(), loss.item()))
-        
-        return loss
+
+        return loss, loss_x, loss_y, loss_conf

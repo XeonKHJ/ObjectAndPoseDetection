@@ -51,8 +51,12 @@ def calc_pts_diameter(pts):
     diameter = -1
     for pt_id in range(pts.shape[0]):
         pt_dup = np.tile(np.array([pts[pt_id, :]]), [pts.shape[0] - pt_id, 1])
+
+        #计算与所有其他点的距离
         pts_diff = pt_dup - pts[pt_id:, :]
         max_dist = math.sqrt((pts_diff * pts_diff).sum(axis=1).max())
+
+        #保存当前的最大距离
         if max_dist > diameter:
             diameter = max_dist
     return diameter

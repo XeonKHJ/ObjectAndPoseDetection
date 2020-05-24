@@ -348,3 +348,7 @@ Assets/
 
 #python文件
 ObjectAndPoseDetection.ModelBuilder/SingleShotPoseEnv/
+
+#AzureML配置文件
+.amlignore
+aml_config/

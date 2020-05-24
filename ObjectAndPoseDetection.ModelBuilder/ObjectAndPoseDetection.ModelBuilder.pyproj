@@ -5,14 +5,14 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{1f0f0b26-ae62-4c44-901c-b3a3be159184}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>train.py</StartupFile>
+    <StartupFile>valid.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <InterpreterId>MSBuild|SingleShotPoseEnv|$(MSBuildProjectFullPath)</InterpreterId>
-    <CommandLineArguments>--datacfg cfg/ape.data --modelcfg cfg/yolo-pose.cfg --initweightfile ../Assets/trained/ape.weights --pretrain_num_epochs 15</CommandLineArguments>
+    <CommandLineArguments>--datacfg cfg/ape.data --modelcfg cfg/yolo-pose.cfg --weightfile ../Assets/trained/ape.weights</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />

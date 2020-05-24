@@ -20,6 +20,16 @@ from MeshPly import MeshPly
 import warnings
 warnings.filterwarnings("ignore")
 
+#导入Azure机器学习开发组件
+from azureml.core import Workspace
+from azureml.core import Experiment
+
+
+#准备Azure工作区
+ws = Workspace.from_config(path="../Assets/AzureConfig", _file_name='config.json')
+#print("Azure工作区信息：\n", ws.get_details())
+experiment = Experiment(workspace=ws, name="Object6DPose-SingleObject-Exp3")
+
 # Create new directory
 def makedirs(path):
     if not os.path.exists( path ):
@@ -69,8 +79,7 @@ def train(epoch):
                                                             	   transform=transforms.Compose([transforms.ToTensor(),]), 
                                                             	   train=True, 
                                                             	   seen=model.seen,
-                                                            	   batch_size=batch_size,
-                                                            	   num_workers=num_workers, 
+                                                            	   batch_size=batch_size, 
                                                                    bg_file_names=bg_file_names),
                                                 batch_size=batch_size, shuffle=False, **kwargs)
 
@@ -83,6 +92,13 @@ def train(epoch):
     avg_time = torch.zeros(9)
     niter = 0
     # Iterate through batches
+
+    totalLoss_x = 0
+    totalLoss_y = 0
+    totalLoss_conf = 0
+    totalLoss = 0
+    totalSeen = 0
+    run = experiment.start_logging(snapshot_directory=None)
     for batch_idx, (data, target) in enumerate(train_loader):
         t2 = time.time()
         # adjust learning rate
@@ -104,7 +120,14 @@ def train(epoch):
         model.seen = model.seen + data.data.size(0)
         region_loss.seen = region_loss.seen + data.data.size(0)
         # Compute loss, grow an array of losses for saving later on
-        loss = region_loss(output, target, epoch)
+        loss, loss_x, loss_y, loss_conf = region_loss(output, target, epoch)
+
+        totalLoss += loss
+        totalLoss_y += loss_y
+        totalLoss_x += loss_x
+        totalLoss_conf += loss_conf
+        totalSeen += output.size()[0]
+
         training_iters.append(epoch * math.ceil(len(train_loader.dataset) / float(batch_size) ) + niter)
         training_losses.append(convert2cpu(loss.data))
         niter += 1
@@ -137,6 +160,12 @@ def train(epoch):
             print('            step : %f' % (avg_time[7]/(batch_idx)))
             print('           total : %f' % (avg_time[8]/(batch_idx)))
         t1 = time.time()
+
+        run.log("loss_x", totalLoss_x.item() / totalSeen)
+        run.log("loss_y", totalLoss_y.item() / totalSeen)
+        run.log("loss_conf", totalLoss_conf.item() / totalSeen)
+        run.log("loss", totalLoss.item() / totalSeen)
+        run.complete()
     t1 = time.time()
     return epoch * math.ceil(len(train_loader.dataset) / float(batch_size) ) + niter - 1 
 
@@ -332,6 +361,7 @@ if __name__ == "__main__":
     test_width  = int(net_options['test_width'])
     test_height = int(net_options['test_height'])
 
+
     # Specify which gpus to use
     use_cuda      = False
     seed          = int(time.time())
@@ -347,7 +377,7 @@ if __name__ == "__main__":
     # Model settings
     model.load_weights_until_last(initweightfile) 
 
-    exportToOnnx(model)
+    #exportToOnnx(model)
 
   
     model.print_network()
@@ -377,7 +407,7 @@ if __name__ == "__main__":
 
 
     # Specify the number of workers
-    kwargs = {'num_workers': num_workers, 'pin_memory': True} if use_cuda else {}
+    kwargs = {'num_workers': 0, 'pin_memory': True} if use_cuda else {}
 
     # Get the dataloader for test data
     test_loader = torch.utils.data.DataLoader(dataset.listDataset(testlist, 
@@ -402,7 +432,9 @@ if __name__ == "__main__":
     optimizer = optim.SGD(model.parameters(), lr=learning_rate/batch_size, momentum=momentum, dampening=0, weight_decay=decay*batch_size)
 
     best_acc      = -sys.maxsize 
-    for epoch in range(init_epoch, max_epochs): 
+    for epoch in range(init_epoch, max_epochs):
+        
+
         # TRAIN
         niter = train(epoch)
         # TEST and SAVE

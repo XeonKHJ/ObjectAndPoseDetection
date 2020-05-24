@@ -97,8 +97,8 @@ def valid(datacfg, modelcfg, weightfile):
                                         transform=transforms.Compose([transforms.ToTensor(),]))
 
     # Specify the number of workers for multiple processing, get the dataloader for the test dataset
-    kwargs = {'num_workers': 4, 'pin_memory': True}
-    test_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=1, shuffle=False, **kwargs) 
+    #kwargs = {'num_workers': 1, 'pin_memory': True}
+    test_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=1, shuffle=False) 
 
     logging("   Testing {}...".format(name))
     logging("   Number of test samples: %d" % len(test_loader.dataset))
