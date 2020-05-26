@@ -217,7 +217,7 @@ def convert2cpu(gpu_matrix):
 def convert2cpu_long(gpu_matrix):
     return torch.LongTensor(gpu_matrix.size()).copy_(gpu_matrix)
 
-def get_region_boxes(output, num_classes, num_keypoints, only_objectness=1, validation=True):
+def get_region_boxes(output, num_classes, num_keypoints, only_objectness=1, validation=True, onlyOneBox=True, confThred = 0.5):
     
     # Parameters
     anchor_dim = 1 
@@ -272,6 +272,9 @@ def get_region_boxes(output, num_classes, num_keypoints, only_objectness=1, vali
         cls_confs = convert2cpu(cls_confs.view(-1, num_classes))
     t2 = time.time()
 
+    if not onlyOneBox:
+        box = list()
+
     # Boxes filter
     for b in range(batch):
         for cy in range(h):
@@ -284,7 +287,7 @@ def get_region_boxes(output, num_classes, num_keypoints, only_objectness=1, vali
                     else:
                         conf = det_confs[ind] * cls_max_confs[ind]
                     
-                    if conf > max_conf:
+                    if bool(conf > max_conf) & onlyOneBox:
                         #print("h: ", cy, " w: ", cx)
                         max_conf = conf
                         bcx = list()
@@ -300,7 +303,21 @@ def get_region_boxes(output, num_classes, num_keypoints, only_objectness=1, vali
                             box.append(bcy[j]/h)
                         box.append(det_conf)
                         box.append(cls_max_conf)
-                        box.append(cls_max_id)                        
+                        box.append(cls_max_id)
+                    elif (not onlyOneBox) & bool(conf > confThred):
+                        bcx = list()
+                        bcy = list()
+                        for j in range(num_keypoints):
+                            bcx.append(xs[j][ind])
+                            bcy.append(ys[j][ind])
+                        cls_max_conf = cls_max_confs[ind]
+                        cls_max_id = cls_max_ids[ind]
+                        for j in range(num_keypoints):
+                            box.append(bcx[j]/w)
+                            box.append(bcy[j]/h)
+                        box.append(det_conf)
+                        box.append(cls_max_conf)
+                        box.append(cls_max_id)
     t3 = time.time()
     if False:
         print('---------------------------------')
@@ -309,7 +326,6 @@ def get_region_boxes(output, num_classes, num_keypoints, only_objectness=1, vali
         print('      boxes filter : %f' % (t3-t2))
         print('---------------------------------')
     return box
-
 
 def read_truths(lab_path, num_keypoints=9):
     num_labels = 2*num_keypoints+3 # +2 for width, height, +1 for class label

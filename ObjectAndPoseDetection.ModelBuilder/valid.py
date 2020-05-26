@@ -12,6 +12,8 @@ from darknet import Darknet
 from utils import *
 from MeshPly import MeshPly
 
+from customUtil import *
+
 def valid(datacfg, modelcfg, weightfile):
     def truths_length(truths, max_num_gt=50):
         for i in range(max_num_gt):
@@ -116,7 +118,11 @@ def valid(datacfg, modelcfg, weightfile):
         output = model(data).data  
         t3 = time.time()
         # Using confidence threshold, eliminate low-confidence predictions
-        all_boxes = get_region_boxes(output, num_classes, num_keypoints)        
+        all_boxes = get_region_boxes(output, num_classes, num_keypoints) 
+        reallyAllBoxes = get_region_boxes(output, num_classes, num_keypoints, onlyOneBox=False)
+
+        reallyAllBoxes = parseBoxes(reallyAllBoxes, 1, 1)
+
         t4 = time.time()
         # Evaluation
         # Iterate through all batch elements
