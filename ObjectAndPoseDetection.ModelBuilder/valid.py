@@ -14,7 +14,7 @@ from MeshPly import MeshPly
 
 from customUtil import *
 
-def valid(datacfg, modelcfg, weightfile):
+def valid(datacfg, modelcfg, weightfile, conf_thread=0.5):
     def truths_length(truths, max_num_gt=50):
         for i in range(max_num_gt):
             if truths[i][1] == 0:
@@ -106,6 +106,9 @@ def valid(datacfg, modelcfg, weightfile):
     logging("   Number of test samples: %d" % len(test_loader.dataset))
     # Iterate through test batches (Batch size for test data is 1)
     count = 0
+
+    noOfFalsePostive = 0
+    noOfTruePostive = 0
     for batch_idx, (data, target) in enumerate(test_loader):
         t1 = time.time()
         # Pass data to GPU
@@ -119,11 +122,14 @@ def valid(datacfg, modelcfg, weightfile):
         t3 = time.time()
         # Using confidence threshold, eliminate low-confidence predictions
         all_boxes = get_region_boxes(output, num_classes, num_keypoints) 
-        reallyAllBoxes = get_region_boxes(output, num_classes, num_keypoints, onlyOneBox=False)
+        reallyAllBoxes = get_region_boxes(output, num_classes, num_keypoints, onlyOneBox=False, confThred = conf_thread)
 
         reallyAllBoxes = parseBoxes(reallyAllBoxes, 1, 1)
+        segements = output.size()[2] * output.size()[3]
+
 
         t4 = time.time()
+
         # Evaluation
         # Iterate through all batch elements
         for box_pr, target in zip([all_boxes], [target[0]]):
@@ -138,6 +144,16 @@ def valid(datacfg, modelcfg, weightfile):
                     box_gt.append(truths[k][j])
                 box_gt.extend([1.0, 1.0])
                 box_gt.append(truths[k][0])
+
+                #计算和真实值拟合的数量
+                doneWithRealBox = False
+                for preRealBox in reallyAllBoxes:
+                    conf = valid_corner_confidences(torch.tensor(box_gt).cuda(), preRealBox, im_width, im_height)
+                    if conf < 0.5:
+                        noOfFalsePostive += 1
+                    elif not doneWithRealBox:
+                        noOfTruePostive += 1
+                        doneWithRealBox = True
 
                 # Denormalize the corner predictions 
                 corners2D_gt = np.array(np.reshape(box_gt[:18], [-1, 2]), dtype='float32')
@@ -217,6 +233,18 @@ def valid(datacfg, modelcfg, weightfile):
     mean_corner_err_2d = np.mean(errs_corner2D)
     nts = float(testing_samples)
 
+    print("threadhold: ", conf_thread)
+    print("no of mistake(FP): ", noOfFalsePostive)
+    print("no of rightBox(TP): ", noOfTruePostive)
+    print("no of missedBox(FN): ", 1050 - noOfTruePostive)
+    precision = noOfTruePostive / (noOfFalsePostive + noOfTruePostive)
+    recall = noOfTruePostive / 1050
+    print("Precision: ", precision)
+    print("Recall: ", recall)
+    print("F1: ", 2*recall*precision/(recall + precision))
+    print("no: ", batch_idx)
+
+
     if testtime:
         print('-----------------------------------')
         print('  tensor to cuda : %f' % (t2 - t1))
@@ -249,4 +277,6 @@ if __name__ == '__main__':
     datacfg    = args.datacfg
     modelcfg   = args.modelcfg
     weightfile = args.weightfile
-    valid(datacfg, modelcfg, weightfile)
+
+    
+    valid(datacfg, modelcfg, weightfile, 0.85)
