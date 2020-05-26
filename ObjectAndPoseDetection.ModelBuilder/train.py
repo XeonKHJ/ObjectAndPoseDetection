@@ -372,7 +372,7 @@ if __name__ == "__main__":
 
     # Specifiy the model and the loss
     model       = Darknet(modelcfg)
-    region_loss = RegionLoss(num_keypoints=9, num_classes=1, anchors=[], num_anchors=1, pretrain_num_epochs=15)
+    region_loss = RegionLoss(num_keypoints=9, num_classes=1, anchors=[], num_anchors=1, pretrain_num_epochs=15, use_cuda=use_cuda)
 
     # Model settings
     model.load_weights_until_last(initweightfile) 
