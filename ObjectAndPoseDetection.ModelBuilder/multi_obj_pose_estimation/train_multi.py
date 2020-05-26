@@ -50,9 +50,9 @@ def train(epoch):
                                                             shuffle=True,
                                                             transform=transforms.Compose([transforms.ToTensor(),]), 
                                                             train=True, 
-                                                            seen=model.module.seen,
+                                                            seen=model.seen,
                                                             batch_size=batch_size,
-                                                            num_workers=num_workers, bg_file_names=bg_file_names),
+                                                            num_workers=0, bg_file_names=bg_file_names),
                                                 batch_size=batch_size, shuffle=False, **kwargs)
 
     # TRAINING
@@ -343,9 +343,9 @@ if __name__ == "__main__":
     # Further params
     if not os.path.exists(backupdir):
         makedirs(backupdir)
-    bg_file_names = get_all_files('../VOCdevkit/VOC2012/JPEGImages')
+    bg_file_names = get_all_files('../Assets/DataSets/VOCdevkit/VOC2012/JPEGImages')
     nsamples      = file_lines(trainlist)
-    use_cuda      = True
+    use_cuda      = False
     seed          = int(time.time())
     best_acc      = -sys.maxsize
     num_labels    = num_keypoints*2+3 # + 2 for image width, height, +1 for image class
@@ -358,7 +358,7 @@ if __name__ == "__main__":
 
     # Specifiy the model and the loss
     model       = Darknet(modelcfg)
-    region_loss = RegionLoss(num_keypoints=num_keypoints, num_classes=num_classes, anchors=anchors, num_anchors=num_anchors, pretrain_num_epochs=pretrain_num_epochs)
+    region_loss = RegionLoss(num_keypoints=num_keypoints, num_classes=num_classes, anchors=anchors, num_anchors=num_anchors, pretrain_num_epochs=pretrain_num_epochs, use_cuda=False)
 
     # Model settings
     model.load_weights_until_last(initweightfile) 
@@ -379,7 +379,7 @@ if __name__ == "__main__":
     testing_accuracies   = []
 
     # Specify the number of workers
-    kwargs = {'num_workers': num_workers, 'pin_memory': True} if use_cuda else {}
+    kwargs = {'num_workers': 0, 'pin_memory': True} if use_cuda else {}
 
     # Pass the model to GPU
     if use_cuda:

@@ -92,7 +92,7 @@ def build_targets(pred_corners, target, num_keypoints, anchors, num_anchors, num
     return nGT, nCorrect, coord_mask, conf_mask, cls_mask, txs, tys, tconf, tcls
            
 class RegionLoss(nn.Module):
-    def __init__(self, num_keypoints=9, num_classes=13, anchors=[], num_anchors=5, pretrain_num_epochs=15):
+    def __init__(self, num_keypoints=9, num_classes=13, anchors=[], num_anchors=5, pretrain_num_epochs=15, use_cuda = True):
         super(RegionLoss, self).__init__()
         self.num_classes = num_classes
         self.anchors = anchors
@@ -106,6 +106,7 @@ class RegionLoss(nn.Module):
         self.thresh = 0.6
         self.seen = 0
         self.pretrain_num_epochs = pretrain_num_epochs
+        self.use_cuda = use_cuda
 
     def forward(self, output, target, epoch):
         # Parameters
@@ -120,20 +121,41 @@ class RegionLoss(nn.Module):
         output = output.view(nB, nA, (2*self.num_keypoints+1+nC), nH, nW)
         x = list()
         y = list()
-        x.append(torch.sigmoid(output.index_select(2, Variable(torch.cuda.LongTensor([0]))).view(nB, nA, nH, nW)))
-        y.append(torch.sigmoid(output.index_select(2, Variable(torch.cuda.LongTensor([1]))).view(nB, nA, nH, nW)))
-        for i in range(1,self.num_keypoints):
-            x.append(output.index_select(2, Variable(torch.cuda.LongTensor([2 * i + 0]))).view(nB, nA, nH, nW))
-            y.append(output.index_select(2, Variable(torch.cuda.LongTensor([2 * i + 1]))).view(nB, nA, nH, nW))
-        conf   = F.sigmoid(output.index_select(2, Variable(torch.cuda.LongTensor([2*self.num_keypoints]))).view(nB, nA, nH, nW))
-        cls    = output.index_select(2, Variable(torch.linspace(2*self.num_keypoints+1,2*self.num_keypoints+1+nC-1,nC).long().cuda()))
-        cls    = cls.view(nB*nA, nC, nH*nW).transpose(1,2).contiguous().view(nB*nA*nH*nW, nC)
-        t1     = time.time()
+
+        if self.use_cuda:
+            x.append(torch.sigmoid(output.index_select(2, Variable(torch.cuda.LongTensor([0]))).view(nB, nA, nH, nW)))
+            y.append(torch.sigmoid(output.index_select(2, Variable(torch.cuda.LongTensor([1]))).view(nB, nA, nH, nW)))
+            for i in range(1,self.num_keypoints):
+                x.append(output.index_select(2, Variable(torch.cuda.LongTensor([2 * i + 0]))).view(nB, nA, nH, nW))
+                y.append(output.index_select(2, Variable(torch.cuda.LongTensor([2 * i + 1]))).view(nB, nA, nH, nW))
+            conf   = F.sigmoid(output.index_select(2, Variable(torch.cuda.LongTensor([2*self.num_keypoints]))).view(nB, nA, nH, nW))
+            cls    = output.index_select(2, Variable(torch.linspace(2*self.num_keypoints+1,2*self.num_keypoints+1+nC-1,nC).long().cuda()))
+            cls    = cls.view(nB*nA, nC, nH*nW).transpose(1,2).contiguous().view(nB*nA*nH*nW, nC)
+            t1     = time.time()
+        else:
+            x.append(torch.sigmoid(output.index_select(2, Variable(torch.LongTensor([0]))).view(nB, nA, nH, nW)))
+            y.append(torch.sigmoid(output.index_select(2, Variable(torch.LongTensor([1]))).view(nB, nA, nH, nW)))
+            for i in range(1,self.num_keypoints):
+                x.append(output.index_select(2, Variable(torch.LongTensor([2 * i + 0]))).view(nB, nA, nH, nW))
+                y.append(output.index_select(2, Variable(torch.LongTensor([2 * i + 1]))).view(nB, nA, nH, nW))
+            conf   = F.sigmoid(output.index_select(2, Variable(torch.LongTensor([2*self.num_keypoints]))).view(nB, nA, nH, nW))
+            cls    = output.index_select(2, Variable(torch.linspace(2*self.num_keypoints+1,2*self.num_keypoints+1+nC-1,nC).long()))
+            cls    = cls.view(nB*nA, nC, nH*nW).transpose(1,2).contiguous().view(nB*nA*nH*nW, nC)
+            t1     = time.time()
+
 
         # Create pred boxes
-        pred_corners = torch.cuda.FloatTensor(2*self.num_keypoints, nB*nA*nH*nW)
-        grid_x = torch.linspace(0, nW-1, nW).repeat(nH,1).repeat(nB*nA, 1, 1).view(nB*nA*nH*nW).cuda()
-        grid_y = torch.linspace(0, nH-1, nH).repeat(nW,1).t().repeat(nB*nA, 1, 1).view(nB*nA*nH*nW).cuda()
+        if self.use_cuda:
+            pred_corners = torch.cuda.FloatTensor(2*self.num_keypoints, nB*nA*nH*nW)
+            grid_x = torch.linspace(0, nW-1, nW).repeat(nH,1).repeat(nB*nA, 1, 1).view(nB*nA*nH*nW).cuda()
+            grid_y = torch.linspace(0, nH-1, nH).repeat(nW,1).t().repeat(nB*nA, 1, 1).view(nB*nA*nH*nW).cuda()
+        else:
+            pred_corners = torch.FloatTensor(2*self.num_keypoints, nB*nA*nH*nW)
+            grid_x = torch.linspace(0, nW-1, nW).repeat(nH,1).repeat(nB*nA, 1, 1).view(nB*nA*nH*nW)
+            grid_y = torch.linspace(0, nH-1, nH).repeat(nW,1).t().repeat(nB*nA, 1, 1).view(nB*nA*nH*nW)
+
+
+
         for i in range(self.num_keypoints):
             pred_corners[2 * i + 0]  = (x[i].data.view_as(grid_x) + grid_x) / nW
             pred_corners[2 * i + 1]  = (y[i].data.view_as(grid_y) + grid_y) / nH
@@ -145,16 +167,29 @@ class RegionLoss(nn.Module):
         nGT, nCorrect, coord_mask, conf_mask, cls_mask, txs, tys, tconf, tcls = \
                        build_targets(pred_corners, target.data, self.num_keypoints, self.anchors, nA, nC, nH, nW, self.noobject_scale, self.object_scale, self.thresh, self.seen)
         cls_mask   = (cls_mask == 1)
-        nProposals = int((conf > 0.25).sum().data[0])
-        for i in range(self.num_keypoints):
-            txs[i] = Variable(txs[i].cuda())
-            tys[i] = Variable(tys[i].cuda())
-        tconf      = Variable(tconf.cuda())
-        tcls       = Variable(tcls[cls_mask].long().cuda())
-        coord_mask = Variable(coord_mask.cuda())
-        conf_mask  = Variable(conf_mask.cuda().sqrt())
-        cls_mask   = Variable(cls_mask.view(-1, 1).repeat(1,nC).cuda())
-        cls        = cls[cls_mask].view(-1, nC)  
+        nProposals = int((conf > 0.25).sum().item())
+
+        if self.use_cuda:
+            for i in range(self.num_keypoints):
+                txs[i] = Variable(txs[i].cuda())
+                tys[i] = Variable(tys[i].cuda())
+            tconf      = Variable(tconf.cuda())
+            tcls       = Variable(tcls[cls_mask].long().cuda())
+            coord_mask = Variable(coord_mask.cuda())
+            conf_mask  = Variable(conf_mask.cuda().sqrt())
+            cls_mask   = Variable(cls_mask.view(-1, 1).repeat(1,nC).cuda())
+            cls        = cls[cls_mask].view(-1, nC)  
+        else:
+            for i in range(self.num_keypoints):
+                txs[i] = Variable(txs[i])
+                tys[i] = Variable(tys[i])
+            tconf      = Variable(tconf)
+            tcls       = Variable(tcls[cls_mask].long())
+            coord_mask = Variable(coord_mask)
+            conf_mask  = Variable(conf_mask.sqrt())
+            cls_mask   = Variable(cls_mask.view(-1, 1).repeat(1,nC))
+            cls        = cls[cls_mask].view(-1, nC)  
+
         t3 = time.time()
 
         # Create loss
@@ -175,7 +210,7 @@ class RegionLoss(nn.Module):
             # once the coordinate predictions get better, start training for confidence as well
             loss  = loss_x + loss_y + loss_cls
     
-        print('%d: nGT %d, recall %d, proposals %d, loss: x %f, y %f, conf %f, cls %f, total %f' % (self.seen, nGT, nCorrect, nProposals, loss_x.data[0], loss_y.data[0], loss_conf.data[0], loss_cls.data[0], loss.data[0]))
+        print('%d: nGT %d, recall %d, proposals %d, loss: x %f, y %f, conf %f, cls %f, total %f' % (self.seen, nGT, nCorrect, nProposals, loss_x.data.item(), loss_y.data.item(), loss_conf.data.item(), loss_cls.data.item(), loss.data.item()))
         t4 = time.time()
 
         if False:
