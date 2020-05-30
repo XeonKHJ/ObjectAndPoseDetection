@@ -263,7 +263,7 @@ def convert2cpu_long(gpu_matrix):
     return torch.LongTensor(gpu_matrix.size()).copy_(gpu_matrix)
 
 # Get potential sets of predictions at test time
-def get_multi_region_boxes(output, conf_thresh, num_classes, num_keypoints, anchors, num_anchors, correspondingclass, only_objectness=1, validation=False, needConfThread = False):
+def get_multi_region_boxes(output, conf_thresh, num_classes, num_keypoints, anchors, num_anchors, correspondingclass, only_objectness=1, validation=False, needConfThresh = False):
     
     # Parameters
     anchor_step = len(anchors)//num_anchors
@@ -358,7 +358,7 @@ def get_multi_region_boxes(output, conf_thresh, num_classes, num_keypoints, anch
                                     box.append(tmp_conf)
                                     box.append(c)
                         boxes.append(box)
-        if (len(boxes) == 0) or (not (correspondingclass in np.array(boxes)[:,2*num_keypoints+2])):
+        if ((len(boxes) == 0) or (not (correspondingclass in np.array(boxes)[:,2*num_keypoints+2]))) and (not needConfThresh) :
             # 如果没有任何边框盒                       如果指定的类没有在出现的任何盒子中   
             # 则将有最大信值的分片的结果找出来添加进去                    
             bcx = list()

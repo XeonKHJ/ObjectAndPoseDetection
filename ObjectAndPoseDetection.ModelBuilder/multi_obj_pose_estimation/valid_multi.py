@@ -16,7 +16,10 @@ from utils_multi import *
 from cfg import parse_cfg
 from MeshPly import MeshPly
 
-def valid(datacfg, cfgfile, weightfile):
+from customUtil import *
+
+
+def valid(datacfg, cfgfile, weightfile, cus_thresh = None):
     def truths_length(truths):
         for i in range(50):
             if truths[i][1] == 0:
@@ -37,7 +40,11 @@ def valid(datacfg, cfgfile, weightfile):
     # Parse net configuration file
     net_options   = parse_cfg(cfgfile)[0]
     loss_options  = parse_cfg(cfgfile)[-1]
-    conf_thresh   = float(net_options['conf_thresh'])
+
+    if cus_thresh is not None:
+        conf_thresh = cus_thresh
+    else:
+        conf_thresh   = float(net_options['conf_thresh'])
     num_keypoints = int(net_options['num_keypoints'])
     num_classes   = int(loss_options['classes'])
     num_anchors   = int(loss_options['num'])
@@ -73,6 +80,10 @@ def valid(datacfg, cfgfile, weightfile):
 
     # Iterate through test batches (Batch size for test data is 1)
     logging('Testing {}...'.format(name))
+
+    noOfFalsePostive = 0
+    noOfTruePostive = 0
+    totalSize = 0
     for batch_idx, (data, target) in enumerate(test_loader):
         
         t1 = time.time()
@@ -91,7 +102,8 @@ def valid(datacfg, cfgfile, weightfile):
         
         # Using confidence threshold, eliminate low-confidence predictions
         trgt = target[0].view(-1, num_labels)
-        all_boxes = get_multi_region_boxes(output, conf_thresh, num_classes, num_keypoints, anchors, num_anchors, int(trgt[0][0]), only_objectness=0)        
+        all_boxes = get_multi_region_boxes(output, conf_thresh, num_classes, num_keypoints, anchors, num_anchors, int(trgt[0][0]), only_objectness=0) 
+        reallyAllBoxes = get_multi_region_boxes(output, conf_thresh, num_classes, num_keypoints, anchors, num_anchors, int(trgt[0][0]), only_objectness=0, needConfThresh=True) 
         t4 = time.time()
         
         # Iterate through all images in the batch
@@ -105,15 +117,25 @@ def valid(datacfg, cfgfile, weightfile):
             
             # Get how many object are present in the scene
             num_gts = truths_length(truths)
-
+            totalSize += num_gts
             # Iterate through each ground-truth object
             for k in range(num_gts):
+
                 box_gt = list()
                 for j in range(1, num_labels):
                     box_gt.append(truths[k][j])
                 box_gt.extend([1.0, 1.0])
                 box_gt.append(truths[k][0])
-                
+
+                doneWithRealBox = False
+                for preRealBox in reallyAllBoxes[0]:
+                    if preRealBox[20] == box_gt[22]:
+                        conf = valid_corner_confidences(torch.tensor(box_gt).cuda(), torch.tensor(preRealBox).cuda(), im_width, im_height)
+                        if conf < 0.5:
+                            noOfFalsePostive += 1
+                        elif not doneWithRealBox:
+                            noOfTruePostive += 1
+                            doneWithRealBox = True
                 # If the prediction has the highest confidence, choose it as our prediction
                 best_conf_est = -sys.maxsize
                 for j in range(len(boxes)):
@@ -151,6 +173,21 @@ def valid(datacfg, cfgfile, weightfile):
 
         t5 = time.time()
 
+    print("threshhold: ", conf_thresh)
+    print("no of mistake(FP): ", noOfFalsePostive)
+    print("no of rightBox(TP): ", noOfTruePostive)
+    print("no of missedBox(FN): ", batch_idx + 1 - noOfTruePostive)
+    precision = noOfTruePostive / (noOfFalsePostive + noOfTruePostive)
+    recall = noOfTruePostive / (batch_idx + 1)
+    print("Precision: ", precision)
+    print("Recall: ", recall)
+    if noOfTruePostive != 0:
+        print("F1: ", 2*recall*precision/(recall + precision))
+    else:
+        print("No F1 Value")
+    print("no: ", batch_idx)
+
+
     # Compute 2D projection score
     eps = 1e-5
     for px_threshold in [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]:
@@ -158,22 +195,31 @@ def valid(datacfg, cfgfile, weightfile):
         # Print test statistics
         logging('   Acc using {} px 2D Projection = {:.2f}%'.format(px_threshold, acc))
 
+    return precision, recall
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='SingleShotPose')
     parser.add_argument('--modelcfg', type=str, default='cfg/yolo-pose-multi.cfg') # network config
     parser.add_argument('--initweightfile', type=str, default='backup_multi/model_backup.weights') # initialization weights
     args = parser.parse_args()
-    datacfg = 'multi_obj_pose_estimation/cfg/ape_occlusion.data'
-    valid(datacfg, args.modelcfg, args.initweightfile)
-    datacfg = 'multi_obj_pose_estimation/cfg/can_occlusion.data'
-    valid(datacfg, args.modelcfg, args.initweightfile)
-    datacfg = 'multi_obj_pose_estimation/cfg/cat_occlusion.data'
-    valid(datacfg, args.modelcfg, args.initweightfile)
-    datacfg = 'multi_obj_pose_estimation/cfg/duck_occlusion.data'
-    valid(datacfg, args.modelcfg, args.initweightfile)
-    datacfg = 'multi_obj_pose_estimation/cfg/glue_occlusion.data'
-    valid(datacfg, args.modelcfg, args.initweightfile)
-    datacfg = 'multi_obj_pose_estimation/cfg/holepuncher_occlusion.data'
-    valid(datacfg, args.modelcfg, args.initweightfile)
+
+    for thresh in [0.05, 0.15, 0.25]:
+        datacfg = 'multi_obj_pose_estimation/cfg/ape_occlusion.data'
+        pr1, rec1 = valid(datacfg, args.modelcfg, args.initweightfile, thresh)
+        datacfg = 'multi_obj_pose_estimation/cfg/can_occlusion.data'
+        pr2, rec2 = valid(datacfg, args.modelcfg, args.initweightfile, thresh)
+        datacfg = 'multi_obj_pose_estimation/cfg/cat_occlusion.data'
+        pr3, rec3 = valid(datacfg, args.modelcfg, args.initweightfile, thresh)
+        datacfg = 'multi_obj_pose_estimation/cfg/duck_occlusion.data'
+        pr4, rec4 = valid(datacfg, args.modelcfg, args.initweightfile, thresh)
+        datacfg = 'multi_obj_pose_estimation/cfg/glue_occlusion.data'
+        pr5, rec5 = valid(datacfg, args.modelcfg, args.initweightfile, thresh)
+        datacfg = 'multi_obj_pose_estimation/cfg/holepuncher_occlusion.data'
+        pr6, rec6 = valid(datacfg, args.modelcfg, args.initweightfile, thresh)
+    
+        mAP = (pr1 + pr2 + pr3 + pr4 + pr5 + pr6)/6
+
+        print("ConfThresh:", thresh)
+        print("mAP:", mAP)
 
