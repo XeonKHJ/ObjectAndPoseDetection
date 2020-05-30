@@ -38,7 +38,7 @@ class listDataset(Dataset):
 
     def __getitem__(self, index):
         assert index <= len(self), 'index range error'
-        imgpath = self.lines[index].rstrip()
+        imgpath = "../Assets/DataSets/" + self.lines[index].rstrip()
 
         if self.train and index % self.batch_size == 0:
             if self.seen < 20*self.nbatches*self.batch_size:

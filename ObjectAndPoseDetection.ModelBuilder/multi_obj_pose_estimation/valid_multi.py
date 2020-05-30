@@ -24,8 +24,8 @@ def valid(datacfg, cfgfile, weightfile):
 
     # Parse data configuration files
     data_options = read_data_cfg(datacfg)
-    valid_images = data_options['valid']
-    meshname     = data_options['mesh']
+    valid_images = "../Assets/DataSets/" + data_options['valid']
+    meshname     = "../Assets/DataSets/" + data_options['mesh']
     name         = data_options['name']
     im_width     = int(data_options['im_width'])
     im_height    = int(data_options['im_height']) 
@@ -59,7 +59,7 @@ def valid(datacfg, cfgfile, weightfile):
 
     # Compute-related Parameters
     use_cuda = True # whether to use cuda or no
-    kwargs = {'num_workers': 1, 'pin_memory': True} # number of workers etc.
+    kwargs = {'num_workers': 0, 'pin_memory': True} # number of workers etc.
 
     # Specicy model, load pretrained weights, pass to GPU and set the module in evaluation mode
     model = Darknet(cfgfile)
@@ -166,14 +166,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
     datacfg = 'multi_obj_pose_estimation/cfg/ape_occlusion.data'
     valid(datacfg, args.modelcfg, args.initweightfile)
-    datacfg = 'cfg/can_occlusion.data'
+    datacfg = 'multi_obj_pose_estimation/cfg/can_occlusion.data'
     valid(datacfg, args.modelcfg, args.initweightfile)
-    datacfg = 'cfg/cat_occlusion.data'
+    datacfg = 'multi_obj_pose_estimation/cfg/cat_occlusion.data'
     valid(datacfg, args.modelcfg, args.initweightfile)
-    datacfg = 'cfg/duck_occlusion.data'
+    datacfg = 'multi_obj_pose_estimation/cfg/duck_occlusion.data'
     valid(datacfg, args.modelcfg, args.initweightfile)
-    datacfg = 'cfg/glue_occlusion.data'
+    datacfg = 'multi_obj_pose_estimation/cfg/glue_occlusion.data'
     valid(datacfg, args.modelcfg, args.initweightfile)
-    datacfg = 'cfg/holepuncher_occlusion.data'
+    datacfg = 'multi_obj_pose_estimation/cfg/holepuncher_occlusion.data'
     valid(datacfg, args.modelcfg, args.initweightfile)
 
