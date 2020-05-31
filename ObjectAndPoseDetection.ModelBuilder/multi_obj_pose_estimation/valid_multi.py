@@ -167,7 +167,7 @@ def valid(datacfg, cfgfile, weightfile, cus_thresh = None):
                 proj_2d_pred = compute_projection(vertices, Rt_pr, intrinsic_calibration) 
                 proj_corners_gt = np.transpose(compute_projection(corners3D, Rt_gt, intrinsic_calibration)) 
                 proj_corners_pr = np.transpose(compute_projection(corners3D, Rt_pr, intrinsic_calibration)) 
-                norm         = np.linalg.norm(proj_2d_gt - proj_2d_pred, axis=0)
+                norm         = np.linalg.norm(proj_2d_gt - proj_2d_pred, axis=0) #求0范数（即距离）
                 pixel_dist   = np.mean(norm)
                 errs_2d.append(pixel_dist)
 

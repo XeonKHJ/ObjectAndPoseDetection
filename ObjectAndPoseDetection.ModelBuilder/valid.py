@@ -233,15 +233,20 @@ def valid(datacfg, modelcfg, weightfile, conf_thread=0.5):
     mean_corner_err_2d = np.mean(errs_corner2D)
     nts = float(testing_samples)
 
+    noOfFalseNegative = batch_idx + 1 - noOfTruePostive
     print("threadhold: ", conf_thread)
     print("no of mistake(FP): ", noOfFalsePostive)
     print("no of rightBox(TP): ", noOfTruePostive)
-    print("no of missedBox(FN): ", 1050 - noOfTruePostive)
+    print("no of missedBox(FN): ", noOfFalseNegative)
     precision = noOfTruePostive / (noOfFalsePostive + noOfTruePostive)
-    recall = noOfTruePostive / 1050
+    recall = noOfTruePostive / (batch_idx + 1)
     print("Precision: ", precision)
     print("Recall: ", recall)
-    print("F1: ", 2*recall*precision/(recall + precision))
+
+    if noOfTruePostive != 0:
+        print("F1: ", 2*recall*precision/(recall + precision))
+    else:
+        print("全他妈错了")
     print("no: ", batch_idx)
 
 
@@ -265,18 +270,46 @@ def valid(datacfg, modelcfg, weightfile, conf_thread=0.5):
     if save:
         predfile = backupdir + '/predictions_linemod_' + name +  '.mat'
         scipy.io.savemat(predfile, {'R_gts': gts_rot, 't_gts':gts_trans, 'corner_gts': gts_corners2D, 'R_prs': preds_rot, 't_prs':preds_trans, 'corner_prs': preds_corners2D})
+    
+    return noOfTruePostive, noOfFalsePostive, noOfFalseNegative, precision, recall 
 
 if __name__ == '__main__':
 
     # Parse configuration files
-    parser = argparse.ArgumentParser(description='SingleShotPose')
-    parser.add_argument('--datacfg', type=str, default='cfg/ape.data') # data config
-    parser.add_argument('--modelcfg', type=str, default='cfg/yolo-pose.cfg') # network config
-    parser.add_argument('--weightfile', type=str, default='backup/ape/model_backup.weights') # imagenet initialized weights
-    args       = parser.parse_args()
-    datacfg    = args.datacfg
-    modelcfg   = args.modelcfg
-    weightfile = args.weightfile
 
     for i in [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.95, 1]:
-        valid(datacfg, modelcfg, weightfile, i)
+        tp = 0
+        fp = 0
+        fn = 0
+        precisions = list()
+        recalls = list()
+        for object in ['ape', 'cam', 'can', 'cat', 'driller', 'duck', 'eggbox', 'glue', 'holdpuncher', 'iron', 'lamp']:
+            '''
+            parser = argparse.ArgumentParser(description='SingleShotPose')
+            print("fuck")
+            parser.add_argument('--datacfg', type=str, default='cfg/ape.data') # data config
+            parser.add_argument('--modelcfg', type=str, default='cfg/yolo-pose.cfg') # network config
+            parser.add_argument('--weightfile', type=str, default='backup/ape/model_backup.weights') # imagenet initialized weights
+            args       = parser.parse_args()
+            '''
+
+            datacfg    = "cfg/" + object + ".data"
+            modelcfg   = 'cfg/yolo-pose.cfg'
+            weightfile = '../Assets/Weights/trained/' + object + '/model_backup.weights'
+            noOfTruePostive, noOfFalsePostive, noOfFalseNegative, precision, recall = valid(datacfg, modelcfg, weightfile, i)
+            tp = tp + noOfTruePostive
+            fp = fp + noOfFalsePostive
+            fn = noOfFalseNegative
+            precisions.append(precision)
+            recalls.append(recall)
+
+        
+        print("一次完成")
+        print("阈值", i)
+        print("tp:", tp)
+        print("fp:", fp)
+        print("fn:", fn)
+        print("mean pr:", mean(precisions))
+        print("mean rec:", mean(recalls))
+
+    print("完成")
