@@ -1,5 +1,5 @@
-valid  = ../LINEMOD/eggbox/test_occlusion.txt
-mesh = ../LINEMOD/eggbox/eggbox.ply
+valid  = LINEMOD/eggbox/test_occlusion.txt
+mesh = LINEMOD/eggbox/eggbox.ply
 backup = backup_multi
 name = eggbox
 diam = 0.176364

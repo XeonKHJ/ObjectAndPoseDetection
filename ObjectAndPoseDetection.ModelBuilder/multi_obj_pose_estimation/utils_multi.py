@@ -263,7 +263,7 @@ def convert2cpu_long(gpu_matrix):
     return torch.LongTensor(gpu_matrix.size()).copy_(gpu_matrix)
 
 # Get potential sets of predictions at test time
-def get_multi_region_boxes(output, conf_thresh, num_classes, num_keypoints, anchors, num_anchors, correspondingclass, only_objectness=1, validation=False):
+def get_multi_region_boxes(output, conf_thresh, num_classes, num_keypoints, anchors, num_anchors, correspondingclass, only_objectness=1, validation=False, needConfThresh = False):
     
     # Parameters
     anchor_step = len(anchors)//num_anchors
@@ -330,6 +330,8 @@ def get_multi_region_boxes(output, conf_thresh, num_classes, num_keypoints, anch
                     #用来找到概率最高的锚的所在格，如果后续该类什么盒都没匹配的时候，用指定的类画出一个盒
                     if (det_confs[ind] > max_conf) and (cls_confs[ind, correspondingclass] > max_cls_conf):
                         max_conf = det_confs[ind]
+
+                        #在该格子中，当前要找的类的概率
                         max_cls_conf = cls_confs[ind, correspondingclass]
                         max_ind = ind 
                     #上述这部分感觉在应用过程中不会用到
@@ -356,7 +358,7 @@ def get_multi_region_boxes(output, conf_thresh, num_classes, num_keypoints, anch
                                     box.append(tmp_conf)
                                     box.append(c)
                         boxes.append(box)
-        if (len(boxes) == 0) or (not (correspondingclass in np.array(boxes)[:,2*num_keypoints+2])):
+        if ((len(boxes) == 0) or (not (correspondingclass in np.array(boxes)[:,2*num_keypoints+2]))) and (not needConfThresh) :
             # 如果没有任何边框盒                       如果指定的类没有在出现的任何盒子中   
             # 则将有最大信值的分片的结果找出来添加进去                    
             bcx = list()

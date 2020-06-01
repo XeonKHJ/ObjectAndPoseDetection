@@ -43,7 +43,7 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
     if len(box) >= 7 and class_names:
         cls_conf = box[19]
         cls_id = box[20]
-        print('%s: %f' % (class_names[cls_id], cls_conf))
+        #print('%s: %f' % (class_names[cls_id], cls_conf))
         classes = len(class_names)
         offset = cls_id * 123457 % classes
         red   = get_color(2, offset, classes)
@@ -51,7 +51,7 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
         blue  = get_color(0, offset, classes)
         if color is None:
             rgb = (red, green, blue)
-        img = cv2.putText(img, class_names[cls_id], (x1,y1), cv2.FONT_HERSHEY_SIMPLEX, 1.2, rgb, 1)
+        #img = cv2.putText(img, class_names[cls_id], (x1,y1), cv2.FONT_HERSHEY_SIMPLEX, 1.2, rgb, 1)
 
     thickness = 2
     #画线
@@ -74,67 +74,92 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
     return img
 
 if __name__ == '__main__':
-    datacfg = 'cfg/ape.data'
-    modelcfg = 'cfg/yolo-pose.cfg'
-    weightfile = '../Assets/trained/ape.weights'
 
-    model = Darknet(modelcfg)
-    model.load_weights(weightfile)
-    model.eval()
+    for className in ['can', 'cat', 'driller', 'duck', 'eggbox', 'glue', 'holepuncher', 'iron', 'lamp', 'phone']:
+        datacfg = 'cfg/' + className + '.data'
+        modelcfg = 'cfg/yolo-pose.cfg'
+        weightfile = '../Assets/singleshotpose/backup/'+className+'/model_backup.weights'
+        outputFolder = "../Assets/Outputs/" + className+ "/"
+        inputFolder = "../Assets/DataSets/LINEMOD/" + className + "/JPEGImages/"
+        gtLabels = "../Assets/DataSets/LINEMOD/"+className+"/labels/"
+        labelPath = list()
+        imagesPath = list()
+        labelFiles = os.listdir(gtLabels)
+        ImageFiles = os.listdir(inputFolder)
+        labels = list()
+        for file in labelFiles:
+            if os.path.splitext(file)[-1] == ".txt":
+                labelPath.append(gtLabels + file)
+                labelfile = open(gtLabels + file, "r")
+                label = labelfile.read().split(' ')
+                for i in range(len(label)):
+                    label[i] = float(label[i])
+                labels.append(label)
 
-    test_width = 416
-    test_height = 416
+        for file in ImageFiles:
+            if os.path.splitext(file)[-1] == ".jpg":
+                imagesPath.append(inputFolder + file)
 
-    imagesPath = ['../Assets/images/IMG_6757.JPG']
 
-    #imgTensor = torch.tensor([1, 3, test_width, test_height])
+        model = Darknet(modelcfg)
+        model.load_weights(weightfile)
+        model.eval()
 
-    img = Image.open(imagesPath[0]).convert('RGB')
-    img = img.resize((test_width, test_height))
-    img.save('../Assets/Test/fuck.jpg')
+        test_width = 416
+        test_height = 416
 
-    originalImg = img
+        for i in range(len(imagesPath)):
 
-    img = transforms.ToTensor()(img)
-    print("image:\n", img*255)
-    imgTensor = torch.zeros([1, img.size(0), img.size(1), img.size(2)])
-    imgTensor[0] = img
+            img = Image.open(imagesPath[i]).convert('RGB')
+            img = img.resize((test_width, test_height))
 
-    #print(imgTensor * 255)
+            originalImg = img
 
-    data = imgTensor.cuda()
-    data = Variable(data, volatile=True)
-    model = model.cuda()
-    model.eval()
-    output = model(data).data
-    
-    print("Original Output: \n", output)
-    #print("Original Output 0:\n", output[0][0])
+            img = transforms.ToTensor()(img)
+            #print("image:\n", img*255)
+            imgTensor = torch.zeros([1, img.size(0), img.size(1), img.size(2)])
+            imgTensor[0] = img
 
-    output = get_region_boxes(output, 1, 9)
-    #print("Output: \n", output)
+            #print(imgTensor * 255)
+            t2 = time.time()
+            data = imgTensor.cuda()
+            data = Variable(data, volatile=True)
+            model = model.cuda()
+            model.eval()
+            output = model(data).data
 
-    output1 = list()
+            output = get_region_boxes(output, 1, 9)
+            #print("Output: \n", output)
+            t3 = time.time()
+            output1 = list()
+            gtBox = labels[i][1:19]
+            gtBox.append(1)
+            gtBox.append(1)
+            gtBox.append(labels[i][0])
 
-    for o in output:
-        output1.append(o.item())
+            for o in output:
+                output1.append(o.item())
 
-    #print('-------------------------------')
-    #print(output1)
+            #print('-------------------------------')
+            #print(output1)
 
-    classesName = list()
-    classesName.append('ape')
-    
-    img = cv2.imread('../Assets/singleshotpose/LINEMOD/ape/JPEGImages/000000.jpg')
+            classesName = list()
+            classesName.append(className)
 
-    img_width = img.shape[1]
-    img_height = img.shape[0]
+            img = cv2.imread(imagesPath[i])
 
-    for i in range(9):
-        output1[2*i] = int(output1[2*i] * img_width)
-        output1[2*i + 1] = int(output1[2*i + 1] * img_height)
+            img_width = img.shape[1]
+            img_height = img.shape[0]
 
-    #print('-------------------------------')
-    #print(output1)
+            for j in range(9):
+                output1[2*j] = int(output1[2*j] * img_width)
+                output1[2*j + 1] = int(output1[2*j + 1] * img_height)
+                gtBox[2*j] = int(gtBox[2*j] * img_width)
+                gtBox[2*j + 1] = int(gtBox[2*j + 1] * img_height)
 
-    plot_boxes_cv2(img, output1, '../Assets/Test/fuck.jpg', classesName)
+            #print('-------------------------------')
+            #print(output1)
+            print("用时：", t3-t2)
+            img = plot_boxes_cv2(img, output1, None, classesName, (0, 0, 255))
+            img = plot_boxes_cv2(img, gtBox, outputFolder + str(i) + ".jpg", classesName, (0, 255, 0))
+

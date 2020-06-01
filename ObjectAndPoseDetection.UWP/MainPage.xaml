@@ -8,10 +8,10 @@
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
-        <Grid Grid.Row="0">
+        <Grid Name="ContentGrid" Grid.Row="0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"></ColumnDefinition>
-                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition x:Name="ButtonColumn" Width="*"></ColumnDefinition>
+                <ColumnDefinition x:Name="ResultColumn" Width="*"></ColumnDefinition>
             </Grid.ColumnDefinitions>
         <Button x:Name="InputButton" Grid.Column="0" Click="Button_Click" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <Button.Content>
@@ -19,6 +19,6 @@
                     </Image>
             </Button.Content>
         </Button>
-            <Image x:Name="OutputImage" Grid.Column="1"></Image>
+            <Image x:Name="OutputImage" Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"></Image>
         </Grid>
 </Page>

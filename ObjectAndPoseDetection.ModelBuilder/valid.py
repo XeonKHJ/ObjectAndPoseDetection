@@ -14,7 +14,7 @@ from MeshPly import MeshPly
 
 from customUtil import *
 
-def valid(datacfg, modelcfg, weightfile):
+def valid(datacfg, modelcfg, weightfile, conf_thread=0.5):
     def truths_length(truths, max_num_gt=50):
         for i in range(max_num_gt):
             if truths[i][1] == 0:
@@ -106,6 +106,9 @@ def valid(datacfg, modelcfg, weightfile):
     logging("   Number of test samples: %d" % len(test_loader.dataset))
     # Iterate through test batches (Batch size for test data is 1)
     count = 0
+
+    noOfFalsePostive = 0
+    noOfTruePostive = 0
     for batch_idx, (data, target) in enumerate(test_loader):
         t1 = time.time()
         # Pass data to GPU
@@ -119,11 +122,14 @@ def valid(datacfg, modelcfg, weightfile):
         t3 = time.time()
         # Using confidence threshold, eliminate low-confidence predictions
         all_boxes = get_region_boxes(output, num_classes, num_keypoints) 
-        reallyAllBoxes = get_region_boxes(output, num_classes, num_keypoints, onlyOneBox=False)
+        reallyAllBoxes = get_region_boxes(output, num_classes, num_keypoints, onlyOneBox=False, confThred = conf_thread)
 
         reallyAllBoxes = parseBoxes(reallyAllBoxes, 1, 1)
+        segements = output.size()[2] * output.size()[3]
+
 
         t4 = time.time()
+
         # Evaluation
         # Iterate through all batch elements
         for box_pr, target in zip([all_boxes], [target[0]]):
@@ -138,6 +144,16 @@ def valid(datacfg, modelcfg, weightfile):
                     box_gt.append(truths[k][j])
                 box_gt.extend([1.0, 1.0])
                 box_gt.append(truths[k][0])
+
+                #计算和真实值拟合的数量
+                doneWithRealBox = False
+                for preRealBox in reallyAllBoxes:
+                    conf = valid_corner_confidences(torch.tensor(box_gt).cuda(), preRealBox, im_width, im_height)
+                    if conf < 0.5:
+                        noOfFalsePostive += 1
+                    elif not doneWithRealBox:
+                        noOfTruePostive += 1
+                        doneWithRealBox = True
 
                 # Denormalize the corner predictions 
                 corners2D_gt = np.array(np.reshape(box_gt[:18], [-1, 2]), dtype='float32')
@@ -217,6 +233,23 @@ def valid(datacfg, modelcfg, weightfile):
     mean_corner_err_2d = np.mean(errs_corner2D)
     nts = float(testing_samples)
 
+    noOfFalseNegative = batch_idx + 1 - noOfTruePostive
+    print("threadhold: ", conf_thread)
+    print("no of mistake(FP): ", noOfFalsePostive)
+    print("no of rightBox(TP): ", noOfTruePostive)
+    print("no of missedBox(FN): ", noOfFalseNegative)
+    precision = noOfTruePostive / (noOfFalsePostive + noOfTruePostive)
+    recall = noOfTruePostive / (batch_idx + 1)
+    print("Precision: ", precision)
+    print("Recall: ", recall)
+
+    if noOfTruePostive != 0:
+        print("F1: ", 2*recall*precision/(recall + precision))
+    else:
+        print("全他妈错了")
+    print("no: ", batch_idx)
+
+
     if testtime:
         print('-----------------------------------')
         print('  tensor to cuda : %f' % (t2 - t1))
@@ -237,16 +270,46 @@ def valid(datacfg, modelcfg, weightfile):
     if save:
         predfile = backupdir + '/predictions_linemod_' + name +  '.mat'
         scipy.io.savemat(predfile, {'R_gts': gts_rot, 't_gts':gts_trans, 'corner_gts': gts_corners2D, 'R_prs': preds_rot, 't_prs':preds_trans, 'corner_prs': preds_corners2D})
+    
+    return noOfTruePostive, noOfFalsePostive, noOfFalseNegative, precision, recall 
 
 if __name__ == '__main__':
 
     # Parse configuration files
-    parser = argparse.ArgumentParser(description='SingleShotPose')
-    parser.add_argument('--datacfg', type=str, default='cfg/ape.data') # data config
-    parser.add_argument('--modelcfg', type=str, default='cfg/yolo-pose.cfg') # network config
-    parser.add_argument('--weightfile', type=str, default='backup/ape/model_backup.weights') # imagenet initialized weights
-    args       = parser.parse_args()
-    datacfg    = args.datacfg
-    modelcfg   = args.modelcfg
-    weightfile = args.weightfile
-    valid(datacfg, modelcfg, weightfile)
+
+    for i in [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.95, 1]:
+        tp = 0
+        fp = 0
+        fn = 0
+        precisions = list()
+        recalls = list()
+        for object in ['ape', 'cam', 'can', 'cat', 'driller', 'duck', 'eggbox', 'glue', 'holdpuncher', 'iron', 'lamp']:
+            '''
+            parser = argparse.ArgumentParser(description='SingleShotPose')
+            print("fuck")
+            parser.add_argument('--datacfg', type=str, default='cfg/ape.data') # data config
+            parser.add_argument('--modelcfg', type=str, default='cfg/yolo-pose.cfg') # network config
+            parser.add_argument('--weightfile', type=str, default='backup/ape/model_backup.weights') # imagenet initialized weights
+            args       = parser.parse_args()
+            '''
+
+            datacfg    = "cfg/" + object + ".data"
+            modelcfg   = 'cfg/yolo-pose.cfg'
+            weightfile = '../Assets/Weights/trained/' + object + '/model_backup.weights'
+            noOfTruePostive, noOfFalsePostive, noOfFalseNegative, precision, recall = valid(datacfg, modelcfg, weightfile, i)
+            tp = tp + noOfTruePostive
+            fp = fp + noOfFalsePostive
+            fn = noOfFalseNegative
+            precisions.append(precision)
+            recalls.append(recall)
+
+        
+        print("一次完成")
+        print("阈值", i)
+        print("tp:", tp)
+        print("fp:", fp)
+        print("fn:", fn)
+        print("mean pr:", mean(precisions))
+        print("mean rec:", mean(recalls))
+
+    print("完成")

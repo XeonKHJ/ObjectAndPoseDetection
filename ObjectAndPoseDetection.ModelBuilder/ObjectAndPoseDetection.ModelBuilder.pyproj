@@ -5,14 +5,14 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{1f0f0b26-ae62-4c44-901c-b3a3be159184}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>multi_obj_pose_estimation\train_multi.py</StartupFile>
+    <StartupFile>multi_obj_pose_estimation\valid_multi.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <InterpreterId>MSBuild|SingleShotPoseEnv|$(MSBuildProjectFullPath)</InterpreterId>
-    <CommandLineArguments>--datacfg multi_obj_pose_estimation/cfg/occlusion.data --modelcfg multi_obj_pose_estimation/cfg/yolo-pose-multi.cfg --initweightfile ../Assets/singleshotpose/backup_multi/model_backup.weights</CommandLineArguments>
+    <CommandLineArguments>--modelcfg multi_obj_pose_estimation/cfg/yolo-pose-multi.cfg --initweightfile ../Assets/trained/multi.weights</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />

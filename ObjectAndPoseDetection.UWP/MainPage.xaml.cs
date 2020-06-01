@@ -29,6 +29,12 @@ using Microsoft.Graphics.Canvas.Brushes;
 using System.Numerics;
 using Windows.Graphics.Display;
 using Windows.UI;
+using Windows.UI.Popups;
+using Windows.Media.Playback;
+using Windows.Media.Core;
+using Microsoft.Graphics.Canvas.UI.Xaml;
+using System.Drawing;
+using Microsoft.Graphics.Canvas.Effects;
 
 // https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x804 上介绍了“空白页”项模板
 
@@ -55,22 +61,100 @@ namespace ObjectAndPoseDetection.UWP
             var picker = new FileOpenPicker();
             picker.SuggestedStartLocation = PickerLocationId.Desktop;
             picker.FileTypeFilter.Add(".jpg");
+            picker.FileTypeFilter.Add(".mp4");
             var chosenFolder = await picker.PickSingleFileAsync();
 
-            if(chosenFolder != null)
+            try
             {
-                DetectObjectPose(chosenFolder);
+                if (chosenFolder != null)
+                {
+                    switch (chosenFolder.FileType)
+                    {
+                        case ".jpg":
+                            DetectObjectPoseFromPicFile(chosenFolder);
+                            break;
+                        case ".mp4":
+                            DetectObectPoseRealtime(chosenFolder);
+                            break;
+                        default:
+                            throw new InvalidOperationException("程序不支持打开类型为" + chosenFolder.FileType + "的文件");
+
+                    }
+                }
+            }
+            catch(InvalidOperationException exception)
+            {
+                var dialog = new MessageDialog(exception.Message);
+                await dialog.ShowAsync();
             }
         }
+
+        private void DetectObectPoseRealtime(StorageFile chosenFolder)
+        {
+            MediaPlayer mediaPlayer = new MediaPlayer()
+            {
+                IsVideoFrameServerEnabled = true,
+                AutoPlay = true
+            };
+            mediaPlayer.VideoFrameAvailable += MediaPlayer_VideoFrameAvailableAsync;
+            mediaPlayer.Source = MediaSource.CreateFromStorageFile(chosenFolder);
+        }
+
+        SoftwareBitmap frameServerDest;
+        CanvasImageSource canvasImageSource;
+        private async void MediaPlayer_VideoFrameAvailableAsync(MediaPlayer sender, object args)
+        {
+            CanvasDevice canvasDevice = CanvasDevice.GetSharedDevice();
+
+            await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+            {
+                if (frameServerDest == null)
+                {
+                    // FrameServerImage in this example is a XAML image control
+                    frameServerDest = new SoftwareBitmap(BitmapPixelFormat.Rgba8, (int)sender.PlaybackSession.NaturalVideoWidth, (int)sender.PlaybackSession.NaturalVideoHeight, BitmapAlphaMode.Ignore);
+                }
+                if (canvasImageSource == null)
+                {
+                    canvasImageSource = new CanvasImageSource(canvasDevice, (int)ResultColumn.ActualWidth, (int)ContentGrid.ActualHeight, DisplayInformation.GetForCurrentView().LogicalDpi);//96); 
+                    OutputImage.Source = canvasImageSource;
+                }
+
+                try
+                {
+                    using (CanvasBitmap inputBitmap = CanvasBitmap.CreateFromSoftwareBitmap(canvasDevice, frameServerDest))
+                    //using (CanvasDrawingSession ds = canvasImageSource.CreateDrawingSession(Colors.Black))
+                    {
+                        var canvasRenderTarget = new CanvasRenderTarget(canvasDevice, 416, 416, 96);
+                        sender.CopyFrameToVideoSurface(inputBitmap);
+
+                        using (var cds = canvasRenderTarget.CreateDrawingSession())
+                        {
+                            cds.DrawImage(inputBitmap, canvasRenderTarget.Bounds);
+                        }
+                        var pixelBytes = canvasRenderTarget.GetPixelBytes();
+
+                        //ds.DrawImage(inputBitmap);
+                    }
+                }
+                catch(Exception exception)
+                {
+                    System.Diagnostics.Debug.WriteLine(exception.Message);
+                }
+            });
+        }
+
+        private void abc()
+        {
+
+        }
+
         private MultiObjectDetectionModelv8Model model;
-        private async void DetectObjectPose(StorageFile inputFile)
+        private async void DetectObjectPoseFromPicFile(StorageFile inputFile)
         {
             var file = inputFile;
 
-            var transform = new BitmapTransform() { ScaledWidth = 416, ScaledHeight = 416, InterpolationMode = BitmapInterpolationMode.Fant };
+            //var transform = new BitmapTransform() { ScaledWidth = 416, ScaledHeight = 416, InterpolationMode = BitmapInterpolationMode.Fant };
             TensorFloat imageTensor;
-
-
 
             using (var stream = await file.OpenAsync(FileAccessMode.Read))
             {
@@ -92,9 +176,12 @@ namespace ObjectAndPoseDetection.UWP
                 OutputParser outputParser = new OutputParser(abc, 13, 5, 0.05f);
                 var boxes = outputParser.BoundingBoxes;
                 DrawBoxes(stream, boxes);
-
-                //using(var session = new CanvasDrawingSesson())
             }
+        }
+
+        public void DetectObjectPoseFromImagePixels(byte[] imagePixels)
+        {
+
         }
 
         public async Task<TensorFloat> ConvertImageToTensorAsync(BitmapDecoder imageDecoder)
@@ -107,6 +194,41 @@ namespace ObjectAndPoseDetection.UWP
             List<float> Greens = new List<float>();
             List<float> Blues = new List<float>();
             for(int i  = 0; i < pixelsWithAlpha.Length; ++i)
+            {
+                switch (i % 4)
+                {
+                    case 0:
+                        Reds.Add((float)pixelsWithAlpha[i] / 255);
+                        break;
+                    case 1:
+                        Greens.Add((float)pixelsWithAlpha[i] / 255);
+                        break;
+                    case 2:
+                        Blues.Add((float)pixelsWithAlpha[i] / 255);
+                        break;
+                }
+            }
+            List<float> sortedPixels = new List<float>();
+            sortedPixels.AddRange(Reds);
+            sortedPixels.AddRange(Greens);
+            sortedPixels.AddRange(Blues);
+
+            long[] dimensions = { 1, 3, 416, 416 };
+            //Tensor<float> pixelTensor = new DenseTensor<float>(dimensions);
+            var inputTesnor = TensorFloat.CreateFromShapeArrayAndDataArray(dimensions, sortedPixels.ToArray());
+
+
+            return inputTesnor;
+        }
+
+        public async Task<TensorFloat> ConvertPixelsByteToTensorAsync(byte[] imagePixels)
+        {
+            var pixelsWithAlpha = imagePixels;
+            List<float> pixels = new List<float>();
+            List<float> Reds = new List<float>();
+            List<float> Greens = new List<float>();
+            List<float> Blues = new List<float>();
+            for (int i = 0; i < pixelsWithAlpha.Length; ++i)
             {
                 switch (i % 4)
                 {
