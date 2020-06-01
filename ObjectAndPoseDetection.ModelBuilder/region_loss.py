@@ -132,7 +132,7 @@ class RegionLoss(nn.Module):
 
         # Create pred boxes
 
-        if use_cuda:
+        if self.use_cuda:
             pred_corners = torch.cuda.FloatTensor(2*num_keypoints, nB*nA*nH*nW)
             grid_x = torch.linspace(0, nW-1, nW).repeat(nH,1).repeat(nB*nA, 1, 1).view(nB*nA*nH*nW).cuda()
             grid_y = torch.linspace(0, nH-1, nH).repeat(nW,1).t().repeat(nB*nA, 1, 1).view(nB*nA*nH*nW).cuda()
@@ -155,7 +155,7 @@ class RegionLoss(nn.Module):
         cls_mask   = (cls_mask == 1)
         nProposals = int((conf > 0.25).sum().item())
 
-        if use_cuda:
+        if self.use_cuda:
             for i in range(num_keypoints):
                 txs[i] = Variable(txs[i].cuda())
                 tys[i] = Variable(tys[i].cuda())

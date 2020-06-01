@@ -27,8 +27,9 @@ from azureml.core import Experiment
 
 #准备Azure工作区
 ws = Workspace.from_config(path="../Assets/AzureConfig", _file_name='config.json')
+experiment = None
 #print("Azure工作区信息：\n", ws.get_details())
-experiment = Experiment(workspace=ws, name="Object6DPose-SingleObject-Exp3")
+
 
 # Create new directory
 def makedirs(path):
@@ -73,7 +74,7 @@ def train(epoch):
     t0 = time.time()
 
     # Get the dataloader for training dataset
-    train_loader = torch.utils.data.DataLoader(dataset.listDataset(trainlist, 
+    train_loader = torch.utils.data.DataLoader(dataset.listDataset(datasetFolder + trainlist,
                                                                    shape=(init_width, init_height),
                                                             	   shuffle=True,
                                                             	   transform=transforms.Compose([transforms.ToTensor(),]), 
@@ -161,11 +162,11 @@ def train(epoch):
             print('           total : %f' % (avg_time[8]/(batch_idx)))
         t1 = time.time()
 
-        run.log("loss_x", totalLoss_x.item() / totalSeen)
-        run.log("loss_y", totalLoss_y.item() / totalSeen)
-        run.log("loss_conf", totalLoss_conf.item() / totalSeen)
-        run.log("loss", totalLoss.item() / totalSeen)
-        run.complete()
+    run.log("loss_x", totalLoss_x.item() / totalSeen)
+    run.log("loss_y", totalLoss_y.item() / totalSeen)
+    run.log("loss_conf", totalLoss_conf.item() / totalSeen)
+    run.log("loss", totalLoss.item() / totalSeen)
+    run.complete()
     t1 = time.time()
     return epoch * math.ceil(len(train_loader.dataset) / float(batch_size) ) + niter - 1 
 
@@ -310,147 +311,144 @@ def test(epoch, niter):
     testing_accuracies.append(acc)
 
 if __name__ == "__main__":
+    datasetFolder = '../Assets/DataSets/'
+    for trainedObject in ['cam', 'can', 'cat', 'driller', 'duck', 'eggbox', 'glue', 'holepuncher', 'iron', 'lamp', 'phone']:
+        experiment = Experiment(workspace=ws, name="Object6DPose-SingleObject-GPU-" + trainedObject + "-exp5")
 
-    # Parse configuration files
-    parser = argparse.ArgumentParser(description='SingleShotPose')
-    parser.add_argument('--datacfg', type=str, default='cfg/ape.data') # data config
-    parser.add_argument('--modelcfg', type=str, default='cfg/yolo-pose.cfg') # network config
-    parser.add_argument('--initweightfile', type=str, default='cfg/darknet19_448.conv.23') # imagenet initialized weights
-    parser.add_argument('--pretrain_num_epochs', type=int, default=15) # how many epoch to pretrain
-    args                = parser.parse_args()
-    datacfg             = args.datacfg
-    modelcfg            = args.modelcfg
-    initweightfile      = args.initweightfile
-    pretrain_num_epochs = args.pretrain_num_epochs
+        datacfg             = 'cfg/' + trainedObject + '.data'
+        modelcfg            = 'cfg/yolo-pose.cfg'
+        initweightfile      = '../Assets/Weights/darknet19_448.conv.23'
+        pretrain_num_epochs = 15
 
-    # Parse configuration files
-    data_options  = read_data_cfg(datacfg)
-    net_options   = parse_cfg(modelcfg)[0]
-    trainlist     = data_options['train']
-    testlist      = data_options['valid']
-    gpus          = data_options['gpus'] 
-    meshname      = data_options['mesh']
-    num_workers   = int(data_options['num_workers'])
-    backupdir     = data_options['backup']
-    vx_threshold  = float(data_options['diam']) * 0.1 # threshold for the ADD metric
-    if not os.path.exists(backupdir):
-        makedirs(backupdir)
-    batch_size    = int(net_options['batch'])
-    max_batches   = int(net_options['max_batches'])
-    learning_rate = float(net_options['learning_rate'])
-    momentum      = float(net_options['momentum'])
-    decay         = float(net_options['decay'])
-    nsamples      = file_lines(trainlist)
-    batch_size    = int(net_options['batch'])
-    nbatches      = nsamples / batch_size
-    steps         = [float(step)*nbatches for step in net_options['steps'].split(',')]
-    scales        = [float(scale) for scale in net_options['scales'].split(',')]
-    bg_file_names = get_all_files('../Assets/singleshotpose/VOCdevkit/VOC2012/JPEGImages')
+        # Parse configuration files
+        data_options  = read_data_cfg(datacfg)
+        net_options   = parse_cfg(modelcfg)[0]
+        trainlist     = data_options['train']
+        testlist      = data_options['valid']
+        #gpus          = data_options['gpus']
+        gpus = '1'
+        meshname      = data_options['mesh']
+        num_workers   = int(data_options['num_workers'])
+        backupdir     = data_options['backup']
+        vx_threshold  = float(data_options['diam']) * 0.1 # threshold for the ADD metric
+        if not os.path.exists(backupdir):
+            makedirs(backupdir)
+        batch_size    = int(net_options['batch'])
+        max_batches   = int(net_options['max_batches'])
+        learning_rate = float(net_options['learning_rate'])
+        momentum      = float(net_options['momentum'])
+        decay         = float(net_options['decay'])
+        nsamples      = file_lines(trainlist)
+        batch_size    = int(net_options['batch'])
+        nbatches      = nsamples / batch_size
+        steps         = [float(step)*nbatches for step in net_options['steps'].split(',')]
+        scales        = [float(scale) for scale in net_options['scales'].split(',')]
+        bg_file_names = get_all_files('../Assets/DataSets/VOCdevkit/VOC2012/JPEGImages')
 
-    # Train parameters
-    max_epochs    = int(net_options['max_epochs'])
-    num_keypoints = int(net_options['num_keypoints'])
-    
-    # Test parameters
-    im_width    = int(data_options['width'])
-    im_height   = int(data_options['height'])
-    fx          = float(data_options['fx'])
-    fy          = float(data_options['fy'])
-    u0          = float(data_options['u0'])
-    v0          = float(data_options['v0'])
-    test_width  = int(net_options['test_width'])
-    test_height = int(net_options['test_height'])
+        # Train parameters
+        max_epochs    = int(net_options['max_epochs'])
+        num_keypoints = int(net_options['num_keypoints'])
+
+        # Test parameters
+        im_width    = int(data_options['width'])
+        im_height   = int(data_options['height'])
+        fx          = float(data_options['fx'])
+        fy          = float(data_options['fy'])
+        u0          = float(data_options['u0'])
+        v0          = float(data_options['v0'])
+        test_width  = int(net_options['test_width'])
+        test_height = int(net_options['test_height'])
 
 
-    # Specify which gpus to use
-    use_cuda      = False
-    seed          = int(time.time())
-    torch.manual_seed(seed)
-    if use_cuda:
-        os.environ['CUDA_VISIBLE_DEVICES'] = gpus
-        torch.cuda.manual_seed(seed)
+        # Specify which gpus to use
+        use_cuda      = True
+        seed          = int(time.time())
+        torch.manual_seed(seed)
+        if use_cuda:
+            os.environ['CUDA_VISIBLE_DEVICES'] = gpus
+            torch.cuda.manual_seed(seed)
 
-    # Specifiy the model and the loss
-    model       = Darknet(modelcfg)
-    region_loss = RegionLoss(num_keypoints=9, num_classes=1, anchors=[], num_anchors=1, pretrain_num_epochs=15, use_cuda=use_cuda)
+        # Specifiy the model and the loss
+        model       = Darknet(modelcfg)
+        region_loss = RegionLoss(num_keypoints=9, num_classes=1, anchors=[], num_anchors=1, pretrain_num_epochs=15, use_cuda=use_cuda)
 
-    # Model settings
-    model.load_weights_until_last(initweightfile) 
+        # Model settings
+        model.load_weights_until_last(initweightfile)
 
-    #exportToOnnx(model)
-
-  
-    model.print_network()
-    model.seen = 0
-    region_loss.iter  = model.iter
-    region_loss.seen  = model.seen
-    processed_batches = model.seen//batch_size
-    init_width        = model.width
-    init_height       = model.height
-    init_epoch        = model.seen//nsamples 
-
-    # Variable to save
-    training_iters          = []
-    training_losses         = []
-    testing_iters           = []
-    testing_losses          = []
-    testing_errors_trans    = []
-    testing_errors_angle    = []
-    testing_errors_pixel    = []
-    testing_accuracies      = []
-
-    # Get the intrinsic camerea matrix, mesh, vertices and corners of the model
-    mesh                 = MeshPly(meshname)
-    vertices             = np.c_[np.array(mesh.vertices), np.ones((len(mesh.vertices), 1))].transpose()
-    corners3D            = get_3D_corners(vertices)
-    internal_calibration = get_camera_intrinsic(u0, v0, fx, fy)
+        #exportToOnnx(model)
 
 
-    # Specify the number of workers
-    kwargs = {'num_workers': 0, 'pin_memory': True} if use_cuda else {}
+        model.print_network()
+        model.seen = 0
+        region_loss.iter  = model.iter
+        region_loss.seen  = model.seen
+        processed_batches = model.seen//batch_size
+        init_width        = model.width
+        init_height       = model.height
+        init_epoch        = model.seen//nsamples
 
-    # Get the dataloader for test data
-    test_loader = torch.utils.data.DataLoader(dataset.listDataset(testlist, 
-    															  shape=(test_width, test_height),
-                                                                  shuffle=False,
-                                                                  transform=transforms.Compose([transforms.ToTensor(),]), 
-                                                                  train=False),
-                                             batch_size=1, shuffle=False, **kwargs)
+        # Variable to save
+        training_iters          = []
+        training_losses         = []
+        testing_iters           = []
+        testing_losses          = []
+        testing_errors_trans    = []
+        testing_errors_angle    = []
+        testing_errors_pixel    = []
+        testing_accuracies      = []
 
-    # Pass the model to GPU
-    if use_cuda:
-        model = model.cuda() # model = torch.nn.DataParallel(model, device_ids=[0]).cuda() # Multiple GPU parallelism
+        # Get the intrinsic camerea matrix, mesh, vertices and corners of the model
+        mesh                 = MeshPly("../Assets/DataSets/" + meshname)
+        vertices             = np.c_[np.array(mesh.vertices), np.ones((len(mesh.vertices), 1))].transpose()
+        corners3D            = get_3D_corners(vertices)
+        internal_calibration = get_camera_intrinsic(u0, v0, fx, fy)
 
-    # Get the optimizer
-    params_dict = dict(model.named_parameters())
-    params = []
-    for key, value in params_dict.items():
-        if key.find('.bn') >= 0 or key.find('.bias') >= 0:
-            params += [{'params': [value], 'weight_decay': 0.0}]
-        else:
-            params += [{'params': [value], 'weight_decay': decay*batch_size}]
-    optimizer = optim.SGD(model.parameters(), lr=learning_rate/batch_size, momentum=momentum, dampening=0, weight_decay=decay*batch_size)
 
-    best_acc      = -sys.maxsize 
-    for epoch in range(init_epoch, max_epochs):
-        
+        # Specify the number of workers
+        kwargs = {'num_workers': 0, 'pin_memory': True} if use_cuda else {}
 
-        # TRAIN
-        niter = train(epoch)
-        # TEST and SAVE
-        if (epoch % 10 == 0) and (epoch > 15): 
-            test(epoch, niter)
-            logging('save training stats to %s/costs.npz' % (backupdir))
-            np.savez(os.path.join(backupdir, "costs.npz"),
-                training_iters=training_iters,
-                training_losses=training_losses,
-                testing_iters=testing_iters,
-                testing_accuracies=testing_accuracies,
-                testing_errors_pixel=testing_errors_pixel,
-                testing_errors_angle=testing_errors_angle) 
-            if (testing_accuracies[-1] > best_acc ):
-                best_acc = testing_accuracies[-1]
-                logging('best model so far!')
-                logging('save weights to %s/model.weights' % (backupdir))
-                model.save_weights('%s/model.weights' % (backupdir))
-    # shutil.copy2('%s/model.weights' % (backupdir), '%s/model_backup.weights' % (backupdir))
+        # Get the dataloader for test data
+        test_loader = torch.utils.data.DataLoader(dataset.listDataset(datasetFolder + testlist,
+        															  shape=(test_width, test_height),
+                                                                      shuffle=False,
+                                                                      transform=transforms.Compose([transforms.ToTensor(),]),
+                                                                      train=False),
+                                                 batch_size=1, shuffle=False, **kwargs)
+
+        # Pass the model to GPU
+        if use_cuda:
+            model = model.cuda() # model = torch.nn.DataParallel(model, device_ids=[0]).cuda() # Multiple GPU parallelism
+
+        # Get the optimizer
+        params_dict = dict(model.named_parameters())
+        params = []
+        for key, value in params_dict.items():
+            if key.find('.bn') >= 0 or key.find('.bias') >= 0:
+                params += [{'params': [value], 'weight_decay': 0.0}]
+            else:
+                params += [{'params': [value], 'weight_decay': decay*batch_size}]
+        optimizer = optim.SGD(model.parameters(), lr=learning_rate/batch_size, momentum=momentum, dampening=0, weight_decay=decay*batch_size)
+
+        best_acc      = -sys.maxsize
+        for epoch in range(init_epoch, max_epochs):
+
+
+            # TRAIN
+            niter = train(epoch)
+            # TEST and SAVE
+            if (epoch % 10 == 0) and (epoch > 15):
+                test(epoch, niter)
+                logging('save training stats to %s/costs.npz' % (backupdir))
+                np.savez(os.path.join(backupdir, "costs.npz"),
+                    training_iters=training_iters,
+                    training_losses=training_losses,
+                    testing_iters=testing_iters,
+                    testing_accuracies=testing_accuracies,
+                    testing_errors_pixel=testing_errors_pixel,
+                    testing_errors_angle=testing_errors_angle)
+                if (testing_accuracies[-1] > best_acc ):
+                    best_acc = testing_accuracies[-1]
+                    logging('best model so far!')
+                    logging('save weights to %s/model.weights' % (backupdir))
+                    model.save_weights(('%s/model' + trainedObject+ '.weights') % (backupdir))
+        # shutil.copy2('%s/model.weights' % (backupdir), '%s/model_backup.weights' % (backupdir))
