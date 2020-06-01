@@ -60,7 +60,7 @@ class listDataset(Dataset):
         assert index <= len(self), 'index range error'
 
         # Get the image path
-        imgpath = self.lines[index].rstrip()
+        imgpath = "../Assets/DataSets/" + self.lines[index].rstrip()
 
         # Decide which size you are going to resize the image depending on the epoch (10, 20, etc.)
         if self.train and index % self.batch_size== 0:
