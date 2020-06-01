@@ -22,8 +22,8 @@ def valid(datacfg, modelcfg, weightfile, conf_thread=0.5):
 
     # Parse configuration files
     data_options = read_data_cfg(datacfg)
-    valid_images = data_options['valid']
-    meshname     = data_options['mesh']
+    valid_images = "../Assets/DataSets/" + data_options['valid']
+    meshname     = "../Assets/DataSets/" + data_options['mesh']
     backupdir    = data_options['backup']
     name         = data_options['name']
     gpus         = data_options['gpus'] 
@@ -79,7 +79,7 @@ def valid(datacfg, modelcfg, weightfile, conf_thread=0.5):
     # Get validation file names
     with open(valid_images) as fp:
         tmp_files = fp.readlines()
-        valid_files = [item.rstrip() for item in tmp_files]
+        valid_files = [("../Assets/DataSets/" + item.rstrip()) for item in tmp_files]
     
     # Specicy model, load pretrained weights, pass to GPU and set the module in evaluation mode
     model = Darknet(modelcfg)
@@ -277,39 +277,39 @@ if __name__ == '__main__':
 
     # Parse configuration files
 
-    for i in [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.95, 1]:
-        tp = 0
-        fp = 0
-        fn = 0
-        precisions = list()
-        recalls = list()
-        for object in ['ape', 'cam', 'can', 'cat', 'driller', 'duck', 'eggbox', 'glue', 'holdpuncher', 'iron', 'lamp']:
-            '''
-            parser = argparse.ArgumentParser(description='SingleShotPose')
-            print("fuck")
-            parser.add_argument('--datacfg', type=str, default='cfg/ape.data') # data config
-            parser.add_argument('--modelcfg', type=str, default='cfg/yolo-pose.cfg') # network config
-            parser.add_argument('--weightfile', type=str, default='backup/ape/model_backup.weights') # imagenet initialized weights
-            args       = parser.parse_args()
-            '''
+    #for i in [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.95, 1]:
+    tp = 0
+    fp = 0
+    fn = 0
+    precisions = list()
+    recalls = list()
+    for object in ['ape', 'cam', 'can', 'cat', 'driller', 'duck', 'eggbox', 'glue', 'holdpuncher', 'iron', 'lamp']:
+        '''
+        parser = argparse.ArgumentParser(description='SingleShotPose')
+        print("fuck")
+        parser.add_argument('--datacfg', type=str, default='cfg/ape.data') # data config
+        parser.add_argument('--modelcfg', type=str, default='cfg/yolo-pose.cfg') # network config
+        parser.add_argument('--weightfile', type=str, default='backup/ape/model_backup.weights') # imagenet initialized weights
+        args       = parser.parse_args()
+        '''
 
-            datacfg    = "cfg/" + object + ".data"
-            modelcfg   = 'cfg/yolo-pose.cfg'
-            weightfile = '../Assets/Weights/trained/' + object + '/model_backup.weights'
-            noOfTruePostive, noOfFalsePostive, noOfFalseNegative, precision, recall = valid(datacfg, modelcfg, weightfile, i)
-            tp = tp + noOfTruePostive
-            fp = fp + noOfFalsePostive
-            fn = noOfFalseNegative
-            precisions.append(precision)
-            recalls.append(recall)
+        datacfg    = "cfg/" + object + ".data"
+        modelcfg   = 'cfg/yolo-pose.cfg'
+        weightfile = '../Assets/Weights/trained/' + object + '/model_backup.weights'
+        noOfTruePostive, noOfFalsePostive, noOfFalseNegative, precision, recall = valid(datacfg, modelcfg, weightfile, 0.65)
+        tp = tp + noOfTruePostive
+        fp = fp + noOfFalsePostive
+        fn = noOfFalseNegative
+        precisions.append(precision)
+        recalls.append(recall)
 
-        
-        print("一次完成")
-        print("阈值", i)
-        print("tp:", tp)
-        print("fp:", fp)
-        print("fn:", fn)
-        print("mean pr:", mean(precisions))
-        print("mean rec:", mean(recalls))
+    
+    print("一次完成")
+    print("阈值", i)
+    print("tp:", tp)
+    print("fp:", fp)
+    print("fn:", fn)
+    print("mean pr:", mean(precisions))
+    print("mean rec:", mean(recalls))
 
     print("完成")
