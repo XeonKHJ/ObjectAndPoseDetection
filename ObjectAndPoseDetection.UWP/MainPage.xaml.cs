@@ -48,12 +48,13 @@ namespace ObjectAndPoseDetection.UWP
         public MainPage()
         {
             this.InitializeComponent();
+            canvasDevice = CanvasDevice.GetSharedDevice();
             LoadModel();
         }
 
         private async void LoadModel()
         {
-            var onnxFile = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/MultiObjectDetectionModelv8.onnx"));
+            var onnxFile = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/SingelObjectApeModelV8.onnx"));
             model = await MultiObjectDetectionModelv8Model.CreateFromStreamAsync(onnxFile);
         }
         private async void Button_Click(object sender, RoutedEventArgs e)
@@ -103,31 +104,29 @@ namespace ObjectAndPoseDetection.UWP
         SoftwareBitmap frameServerDest;
         CanvasImageSource canvasImageSource;
         bool isRenderringFinished = true;
+        CanvasDevice canvasDevice;
         private async void MediaPlayer_VideoFrameAvailableAsync(MediaPlayer sender, object args)
         {
-            if(!isRenderringFinished)
+            if (!isRenderringFinished)
             {
                 return;
             }
             isRenderringFinished = false;
-            CanvasDevice canvasDevice = CanvasDevice.GetSharedDevice();
+            //CanvasDevice canvasDevice = CanvasDevice.GetSharedDevice();
 
             await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
             {
                 if (frameServerDest == null)
                 {
-                    frameServerDest = new SoftwareBitmap(BitmapPixelFormat.Rgba8, (int)sender.PlaybackSession.NaturalVideoWidth, (int)sender.PlaybackSession.NaturalVideoHeight, BitmapAlphaMode.Ignore);
+                    frameServerDest = new SoftwareBitmap(BitmapPixelFormat.Bgra8, (int)sender.PlaybackSession.NaturalVideoWidth, (int)sender.PlaybackSession.NaturalVideoHeight, BitmapAlphaMode.Ignore);
                 }
-                if (canvasImageSource == null)
-                {
-                    canvasImageSource = new CanvasImageSource(canvasDevice, (int)ResultColumn.ActualWidth, (int)ContentGrid.ActualHeight, DisplayInformation.GetForCurrentView().LogicalDpi);//96); 
-                    OutputImage.Source = canvasImageSource;
-                }
+                canvasImageSource = new CanvasImageSource(canvasDevice, (int)sender.PlaybackSession.NaturalVideoWidth, (int)sender.PlaybackSession.NaturalVideoWidth, DisplayInformation.GetForCurrentView().LogicalDpi);//96); 
+                OutputImage.Source = canvasImageSource;
 
                 try
                 {
                     using (CanvasBitmap inputBitmap = CanvasBitmap.CreateFromSoftwareBitmap(canvasDevice, frameServerDest))
-                    using (CanvasDrawingSession ds = canvasImageSource.CreateDrawingSession(Colors.Black))
+                    //using (CanvasDrawingSession ds = canvasImageSource.CreateDrawingSession(Colors.Black))
                     {
                         var canvasRenderTarget = new CanvasRenderTarget(canvasDevice, 416, 416, 96);
                         sender.CopyFrameToVideoSurface(inputBitmap);
@@ -137,13 +136,12 @@ namespace ObjectAndPoseDetection.UWP
                             cds.DrawImage(inputBitmap, canvasRenderTarget.Bounds);
                         }
 
-                        //var pixelBytes = canvasRenderTarget.GetPixelBytes();
+                        var pixelBytes = canvasRenderTarget.GetPixelBytes();
 
-                        //var boxes = await DetectObjectPoseFromImagePixelsAsync(pixelBytes);
+                        var boxes = await DetectObjectPoseFromImagePixelsAsync(pixelBytes);
 
-                        //DrawBoxes(inputBitmap, boxes, canvasImageSource);
-
-                        ds.DrawImage(inputBitmap);
+                        DrawBoxes(inputBitmap, boxes, canvasImageSource);
+                        //ds.DrawImage(inputBitmap);
                     }
                 }
                 catch (Exception exception)
@@ -181,7 +179,7 @@ namespace ObjectAndPoseDetection.UWP
                 {
                     content
                 };
-                OutputParser outputParser = new OutputParser(rawOutput, 13, 5, 0.05f);
+                OutputParser outputParser = new OutputParser(rawOutput, 1, 1, 0.5f);
                 var boxes = outputParser.BoundingBoxes;
                 DrawBoxes(stream, boxes);
             }
@@ -199,7 +197,7 @@ namespace ObjectAndPoseDetection.UWP
             var content = output.grid.GetAsVectorView().ToArray();
             List<float[]> abc = new List<float[]>();
             abc.Add(content);
-            OutputParser outputParser = new OutputParser(abc, 13, 5, 0.05f);
+            OutputParser outputParser = new OutputParser(abc, 1, 1, 0.5f);
             var boxes = outputParser.BoundingBoxes;
             return boxes;
         }
@@ -296,29 +294,29 @@ namespace ObjectAndPoseDetection.UWP
 
             await Window.Current.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
              {
-             //var savepicker = new FileSavePicker();
-             //savepicker.FileTypeChoices.Add("JPEG", new List<string> { ".jpg" });
-             //var destFile = await savepicker.PickSaveFileAsync();
+                 //var savepicker = new FileSavePicker();
+                 //savepicker.FileTypeChoices.Add("JPEG", new List<string> { ".jpg" });
+                 //var destFile = await savepicker.PickSaveFileAsync();
 
-             //var displayInformation = DisplayInformation.GetForCurrentView();
+                 //var displayInformation = DisplayInformation.GetForCurrentView();
 
-             //if(destFile != null)
-             //{
-             //    using(var s =  await destFile.OpenAsync(FileAccessMode.ReadWrite))
-             //    {
-             //var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, s);
-             //encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore,
-             //    (uint)offscreen.Size.Width,
-             //    (uint)offscreen.Size.Height,
-             //    displayInformation.LogicalDpi,
-             //    displayInformation.LogicalDpi,
-             //    offscreen.GetPixelBytes());
+                 //if(destFile != null)
+                 //{
+                 //    using(var s =  await destFile.OpenAsync(FileAccessMode.ReadWrite))
+                 //    {
+                 //var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, s);
+                 //encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore,
+                 //    (uint)offscreen.Size.Width,
+                 //    (uint)offscreen.Size.Height,
+                 //    displayInformation.LogicalDpi,
+                 //    displayInformation.LogicalDpi,
+                 //    offscreen.GetPixelBytes());
 
-             //        await encoder.FlushAsync();
-             //    }
-             //}
+                 //        await encoder.FlushAsync();
+                 //    }
+                 //}
 
-             OutputImage.Source = bitmapImageSouce;
+                 OutputImage.Source = bitmapImageSouce;
              });
         }
 

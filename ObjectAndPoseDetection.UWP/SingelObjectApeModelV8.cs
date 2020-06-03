@@ -30,7 +30,7 @@ namespace ObjectAndPoseDetection.UWP
         {
             SingelObjectApeModelV8Model learningModel = new SingelObjectApeModelV8Model();
             learningModel.model = await LearningModel.LoadFromStreamAsync(stream);
-            learningModel.session = new LearningModelSession(learningModel.model);
+            learningModel.session = new LearningModelSession(learningModel.model, new LearningModelDevice(LearningModelDeviceKind.DirectXHighPerformance));
             learningModel.binding = new LearningModelBinding(learningModel.session);
             return learningModel;
         }
