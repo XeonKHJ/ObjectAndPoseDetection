@@ -12,7 +12,7 @@ using Google.Protobuf.Reflection;
 using Microsoft.ML.Trainers;
 using Newtonsoft.Json;
 
-public class OutputParser
+public class OutputParser : IDisposable
 {
     Size SegementsSize { set; get; } = new Size(13, 13);
     private float[] _originalOutputs;
@@ -254,5 +254,19 @@ public class OutputParser
     private static float Sigmoid(double value)
     {
         return 1.0f / (1.0f + (float)Math.Exp(-value));
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    public virtual void Dispose(bool disposing)
+    { 
+        if(disposing)
+        {
+
+        }
     }
 }

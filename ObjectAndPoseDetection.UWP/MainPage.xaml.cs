@@ -55,7 +55,7 @@ namespace ObjectAndPoseDetection.UWP
         private async void LoadModel()
         {
             var onnxFile = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/SingelObjectApeModelV8.onnx"));
-            model = await MultiObjectDetectionModelv8Model.CreateFromStreamAsync(onnxFile);
+            model = await SingelObjectApeModelV8Model.CreateFromStreamAsync(onnxFile);
         }
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
@@ -152,7 +152,7 @@ namespace ObjectAndPoseDetection.UWP
             isRenderringFinished = true;
         }
 
-        private MultiObjectDetectionModelv8Model model;
+        private SingelObjectApeModelV8Model model;
         private async void DetectObjectPoseFromPicFile(StorageFile inputFile)
         {
             var file = inputFile;
@@ -169,7 +169,7 @@ namespace ObjectAndPoseDetection.UWP
                 BitmapDecoder decoder = await BitmapDecoder.CreateAsync(stream);
                 imageTensor = await ConvertImageToTensorAsync(decoder);
 
-                var input = new MultiObjectDetectionModelv8Input() { image = imageTensor };
+                var input = new SingelObjectApeModelV8Input() { image = imageTensor };
 
                 var output = await model.EvaluateAsync(input);
 
@@ -187,18 +187,36 @@ namespace ObjectAndPoseDetection.UWP
 
         public async Task<List<CubicBoundingBox>> DetectObjectPoseFromImagePixelsAsync(byte[] imagePixels)
         {
-            var imageTensor = ConvertPixelsByteToTensor(imagePixels);
+            List<CubicBoundingBox> boxes = new List<CubicBoundingBox>();
+            using (var imageTensor = ConvertPixelsByteToTensor(imagePixels, BitmapPixelFormat.Bgra8))
+            using(var input = new SingelObjectApeModelV8Input() { image = imageTensor })
+            using(var output = await model.EvaluateAsync(input))
+            {
+                var shape = output.grid.Shape;
+                var content = output.grid.GetAsVectorView().ToArray();
+                List<float[]> abc = new List<float[]>();
+                abc.Add(content);
 
-            var input = new MultiObjectDetectionModelv8Input() { image = imageTensor };
+                using (OutputParser outputParser = new OutputParser(abc, 1, 1, 0.5f))
+                {
+                    foreach (var box in outputParser.BoundingBoxes)
+                    {
+                        var newBox = new CubicBoundingBox()
+                        {
+                            Confidence = box.Confidence,
+                            Identity = box.Identity
+                        };
+                        foreach (var point in box.ControlPoint)
+                        {
+                            newBox.ControlPoint.Append(point);
+                        }
+                        boxes.Add(box);
+                    }
+                }
+            }
 
-            var output = await model.EvaluateAsync(input);
 
-            var shape = output.grid.Shape;
-            var content = output.grid.GetAsVectorView().ToArray();
-            List<float[]> abc = new List<float[]>();
-            abc.Add(content);
-            OutputParser outputParser = new OutputParser(abc, 1, 1, 0.5f);
-            var boxes = outputParser.BoundingBoxes;
+
             return boxes;
         }
 
@@ -208,12 +226,12 @@ namespace ObjectAndPoseDetection.UWP
             var pixelData = await imageDecoder.GetPixelDataAsync(BitmapPixelFormat.Rgba8, BitmapAlphaMode.Ignore, transform, ExifOrientationMode.IgnoreExifOrientation, ColorManagementMode.DoNotColorManage);
             var pixelsWithAlpha = pixelData.DetachPixelData();
 
-            var inputTensor = ConvertPixelsByteToTensor(pixelsWithAlpha);
+            var inputTensor = ConvertPixelsByteToTensor(pixelsWithAlpha, BitmapPixelFormat.Rgba8);
 
             return inputTensor;
         }
 
-        public TensorFloat ConvertPixelsByteToTensor(byte[] imagePixels)
+        public TensorFloat ConvertPixelsByteToTensor(byte[] imagePixels, BitmapPixelFormat bitmapPixelFormat)
         {
             var pixelsWithAlpha = imagePixels;
             List<float> Reds = new List<float>();
@@ -224,13 +242,27 @@ namespace ObjectAndPoseDetection.UWP
                 switch (i % 4)
                 {
                     case 0:
-                        Reds.Add((float)pixelsWithAlpha[i] / 255);
+                        if(bitmapPixelFormat == BitmapPixelFormat.Rgba8)
+                        {
+                            Reds.Add((float)pixelsWithAlpha[i] / 255);
+                        }
+                        else if(bitmapPixelFormat == BitmapPixelFormat.Bgra8)
+                        {
+                            Blues.Add((float)pixelsWithAlpha[i] / 255);
+                        }
                         break;
                     case 1:
                         Greens.Add((float)pixelsWithAlpha[i] / 255);
                         break;
                     case 2:
-                        Blues.Add((float)pixelsWithAlpha[i] / 255);
+                        if (bitmapPixelFormat == BitmapPixelFormat.Rgba8)
+                        {
+                            Blues.Add((float)pixelsWithAlpha[i] / 255);
+                        }
+                        else if (bitmapPixelFormat == BitmapPixelFormat.Bgra8)
+                        {
+                            Reds.Add((float)pixelsWithAlpha[i] / 255);
+                        }
                         break;
                 }
             }
@@ -250,7 +282,7 @@ namespace ObjectAndPoseDetection.UWP
 
         public async void DrawBoxes(IRandomAccessStream imageStream, List<CubicBoundingBox> boxes)
         {
-            var device = CanvasDevice.GetSharedDevice();
+            var device = canvasDevice;
 
             var image = await CanvasBitmap.LoadAsync(device, imageStream);
 

@@ -157,7 +157,7 @@ def eval(niter, datacfg):
     valid_batchsize = 1
 
     # Specify the number of workers for multiple processing, get the dataloader for the test dataset
-    kwargs = {'num_workers': 4, 'pin_memory': True}
+    kwargs = {'num_workers': 0, 'pin_memory': True}
     test_loader = torch.utils.data.DataLoader(
         valid_dataset, batch_size=valid_batchsize, shuffle=False, **kwargs) 
 
