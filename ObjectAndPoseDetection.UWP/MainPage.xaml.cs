@@ -90,6 +90,7 @@ namespace ObjectAndPoseDetection.UWP
             }
         }
 
+        MediaPlayer _mediaPlayer;
         private void DetectObectPoseRealtime(StorageFile chosenFolder)
         {
             MediaPlayer mediaPlayer = new MediaPlayer()
@@ -97,8 +98,15 @@ namespace ObjectAndPoseDetection.UWP
                 IsVideoFrameServerEnabled = true,
                 AutoPlay = true
             };
+            _mediaPlayer = mediaPlayer;
             mediaPlayer.VideoFrameAvailable += MediaPlayer_VideoFrameAvailableAsync;
             mediaPlayer.Source = MediaSource.CreateFromStorageFile(chosenFolder);
+            mediaPlayer.PlaybackSession.PlaybackStateChanged += PlaybackSession_PlaybackStateChanged;
+        }
+
+        private void PlaybackSession_PlaybackStateChanged(MediaPlaybackSession sender, object args)
+        {
+            System.Diagnostics.Debug.WriteLine(string.Format("PlayStatus{0}", sender.PlaybackState));
         }
 
         SoftwareBitmap frameServerDest;
@@ -107,10 +115,10 @@ namespace ObjectAndPoseDetection.UWP
         CanvasDevice canvasDevice;
         private async void MediaPlayer_VideoFrameAvailableAsync(MediaPlayer sender, object args)
         {
-            if (!isRenderringFinished)
-            {
-                return;
-            }
+            //if (!isRenderringFinished)
+            //{
+            //    return;
+            //}
             isRenderringFinished = false;
             //CanvasDevice canvasDevice = CanvasDevice.GetSharedDevice();
 
@@ -189,30 +197,30 @@ namespace ObjectAndPoseDetection.UWP
         {
             List<CubicBoundingBox> boxes = new List<CubicBoundingBox>();
             using (var imageTensor = ConvertPixelsByteToTensor(imagePixels, BitmapPixelFormat.Bgra8))
-            using(var input = new SingelObjectApeModelV8Input() { image = imageTensor })
-            using(var output = await model.EvaluateAsync(input))
+            //using (var input = new SingelObjectApeModelV8Input() { image = imageTensor })
+            //using (var output = await model.EvaluateAsync(input))
             {
-                var shape = output.grid.Shape;
-                var content = output.grid.GetAsVectorView().ToArray();
-                List<float[]> abc = new List<float[]>();
-                abc.Add(content);
+                //var shape = output.grid.Shape;
+                //var content = output.grid.GetAsVectorView().ToArray();
+                //List<float[]> abc = new List<float[]>();
+                //abc.Add(content);
 
-                using (OutputParser outputParser = new OutputParser(abc, 1, 1, 0.5f))
-                {
-                    foreach (var box in outputParser.BoundingBoxes)
-                    {
-                        var newBox = new CubicBoundingBox()
-                        {
-                            Confidence = box.Confidence,
-                            Identity = box.Identity
-                        };
-                        foreach (var point in box.ControlPoint)
-                        {
-                            newBox.ControlPoint.Append(point);
-                        }
-                        boxes.Add(box);
-                    }
-                }
+                //using (OutputParser outputParser = new OutputParser(abc, 1, 1, 0.5f))
+                //{
+                //    foreach (var box in outputParser.BoundingBoxes)
+                //    {
+                //        var newBox = new CubicBoundingBox()
+                //        {
+                //            Confidence = box.Confidence,
+                //            Identity = box.Identity
+                //        };
+                //        foreach (var point in box.ControlPoint)
+                //        {
+                //            newBox.ControlPoint.Append(point);
+                //        }
+                //        boxes.Add(box);
+                //    }
+                //}
             }
 
 
@@ -234,9 +242,9 @@ namespace ObjectAndPoseDetection.UWP
         public TensorFloat ConvertPixelsByteToTensor(byte[] imagePixels, BitmapPixelFormat bitmapPixelFormat)
         {
             var pixelsWithAlpha = imagePixels;
-            List<float> Reds = new List<float>();
-            List<float> Greens = new List<float>();
-            List<float> Blues = new List<float>();
+            List<float> reds = new List<float>();
+            List<float> greens = new List<float>();
+            List<float> blues = new List<float>();
             for (int i = 0; i < pixelsWithAlpha.Length; ++i)
             {
                 switch (i % 4)
@@ -244,38 +252,39 @@ namespace ObjectAndPoseDetection.UWP
                     case 0:
                         if(bitmapPixelFormat == BitmapPixelFormat.Rgba8)
                         {
-                            Reds.Add((float)pixelsWithAlpha[i] / 255);
+                            reds.Add((float)pixelsWithAlpha[i] / 255);
                         }
                         else if(bitmapPixelFormat == BitmapPixelFormat.Bgra8)
                         {
-                            Blues.Add((float)pixelsWithAlpha[i] / 255);
+                            blues.Add((float)pixelsWithAlpha[i] / 255);
                         }
                         break;
                     case 1:
-                        Greens.Add((float)pixelsWithAlpha[i] / 255);
+                        greens.Add((float)pixelsWithAlpha[i] / 255);
                         break;
                     case 2:
                         if (bitmapPixelFormat == BitmapPixelFormat.Rgba8)
                         {
-                            Blues.Add((float)pixelsWithAlpha[i] / 255);
+                            blues.Add((float)pixelsWithAlpha[i] / 255);
                         }
                         else if (bitmapPixelFormat == BitmapPixelFormat.Bgra8)
                         {
-                            Reds.Add((float)pixelsWithAlpha[i] / 255);
+                            reds.Add((float)pixelsWithAlpha[i] / 255);
                         }
                         break;
                 }
             }
             List<float> sortedPixels = new List<float>();
-            sortedPixels.AddRange(Reds);
-            sortedPixels.AddRange(Greens);
-            sortedPixels.AddRange(Blues);
+            sortedPixels.AddRange(reds);
+            sortedPixels.AddRange(greens);
+            sortedPixels.AddRange(blues);
 
             long[] dimensions = { 1, 3, 416, 416 };
             //Tensor<float> pixelTensor = new DenseTensor<float>(dimensions);
             var inputTesnor = TensorFloat.CreateFromShapeArrayAndDataArray(dimensions, sortedPixels.ToArray());
-
-
+            //sortedPixels = null;
+            sortedPixels.Clear();
+            sortedPixels.TrimExcess();
             return inputTesnor;
         }
 
@@ -354,9 +363,9 @@ namespace ObjectAndPoseDetection.UWP
 
         public void DrawBoxes(CanvasBitmap bitmap, List<CubicBoundingBox> boxes, CanvasImageSource canvasImageSource)
         {
-            var device = CanvasDevice.GetSharedDevice();
+            var device = canvasDevice;
             //CanvasSolidColorBrush brush = new CanvasSolidColorBrush(device, Windows.UI.Color.FromArgb(255, 255, 0, 0));
-            using (var ds = canvasImageSource.CreateDrawingSession(Windows.UI.Colors.Black))
+            using (var ds = canvasImageSource.CreateDrawingSession(Colors.Black))
             {
                 ds.DrawImage(bitmap);
                 foreach (var box in boxes)
@@ -378,6 +387,22 @@ namespace ObjectAndPoseDetection.UWP
                     ds.DrawLine(points[2], points[3], brush);
                     ds.DrawLine(points[3], points[7], brush);
                     ds.DrawLine(points[7], points[6], brush);
+                }
+            }
+        }
+
+        private void PlayButton_Click(object sender, RoutedEventArgs e)
+        {
+            if(_mediaPlayer != null)
+            {
+                switch(_mediaPlayer.PlaybackSession.PlaybackState)
+                {
+                    case MediaPlaybackState.Paused:
+                        _mediaPlayer.Play();
+                        break;
+                    case MediaPlaybackState.Playing:
+                        _mediaPlayer.Pause();
+                        break;
                 }
             }
         }

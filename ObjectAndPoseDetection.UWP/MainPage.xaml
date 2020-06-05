@@ -19,6 +19,7 @@
                     </Image>
             </Button.Content>
         </Button>
+        <Button x:Name="PlayButton" Click="PlayButton_Click">暂停/播放</Button>
             <Image x:Name="OutputImage" Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"></Image>
         </Grid>
 </Page>
