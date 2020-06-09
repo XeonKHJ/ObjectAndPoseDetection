@@ -55,7 +55,7 @@ namespace ObjectAndPoseDetection.UWP
         private async void LoadModel()
         {
             var onnxFile = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/SingelObjectApeModelV8.onnx"));
-            model = await SingelObjectApeModelV8Model.CreateFromStreamAsync(onnxFile);
+            model = await SingelObjectApeModelV8Model.CreateFromStreamAsync(onnxFile).ConfigureAwait(true);
         }
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
@@ -106,7 +106,7 @@ namespace ObjectAndPoseDetection.UWP
 
         private void PlaybackSession_PlaybackStateChanged(MediaPlaybackSession sender, object args)
         {
-            System.Diagnostics.Debug.WriteLine(string.Format("PlayStatus{0}", sender.PlaybackState));
+            System.Diagnostics.Debug.WriteLine(string.Format(System.Globalization.CultureInfo.CurrentCulture,"PlayStatus{0}", sender.PlaybackState));
         }
 
         SoftwareBitmap frameServerDest;
@@ -115,10 +115,10 @@ namespace ObjectAndPoseDetection.UWP
         CanvasDevice canvasDevice;
         private async void MediaPlayer_VideoFrameAvailableAsync(MediaPlayer sender, object args)
         {
-            //if (!isRenderringFinished)
-            //{
-            //    return;
-            //}
+            if (!isRenderringFinished)
+            {
+                return;
+            }
             isRenderringFinished = false;
             //CanvasDevice canvasDevice = CanvasDevice.GetSharedDevice();
 
@@ -146,7 +146,7 @@ namespace ObjectAndPoseDetection.UWP
 
                         var pixelBytes = canvasRenderTarget.GetPixelBytes();
 
-                        var boxes = await DetectObjectPoseFromImagePixelsAsync(pixelBytes);
+                        var boxes = await DetectObjectPoseFromImagePixelsAsync(pixelBytes).ConfigureAwait(true);
 
                         DrawBoxes(inputBitmap, boxes, canvasImageSource);
                         //ds.DrawImage(inputBitmap);
@@ -166,7 +166,6 @@ namespace ObjectAndPoseDetection.UWP
             var file = inputFile;
 
             //var transform = new BitmapTransform() { ScaledWidth = 416, ScaledHeight = 416, InterpolationMode = BitmapInterpolationMode.Fant };
-            TensorFloat imageTensor;
 
             using (var stream = await file.OpenAsync(FileAccessMode.Read))
             {
@@ -175,21 +174,22 @@ namespace ObjectAndPoseDetection.UWP
                 InputImage.Source = bitmapSource;
 
                 BitmapDecoder decoder = await BitmapDecoder.CreateAsync(stream);
-                imageTensor = await ConvertImageToTensorAsync(decoder);
-
-                var input = new SingelObjectApeModelV8Input() { image = imageTensor };
-
-                var output = await model.EvaluateAsync(input);
-
-                var shape = output.grid.Shape;
-                var content = output.grid.GetAsVectorView().ToArray();
-                List<float[]> rawOutput = new List<float[]>
+                using (var imageTensor = await ConvertImageToTensorAsync(decoder).ConfigureAwait(true))
+                using (var input = new SingelObjectApeModelV8Input() { Image = imageTensor })
+                using(var output = await model.EvaluateAsync(input).ConfigureAwait(true))
                 {
-                    content
-                };
-                OutputParser outputParser = new OutputParser(rawOutput, 1, 1, 0.5f);
-                var boxes = outputParser.BoundingBoxes;
-                DrawBoxes(stream, boxes);
+                    var shape = output.Grid.Shape;
+                    var content = output.Grid.GetAsVectorView().ToArray();
+                    List<float[]> rawOutput = new List<float[]>
+                    {
+                        content
+                    };
+                    using (OutputParser outputParser = new OutputParser(rawOutput, 1, 1, 0.5f))
+                    {
+                        var boxes = outputParser.BoundingBoxes;
+                        DrawBoxes(stream, boxes);
+                    }
+                }
             }
         }
 
@@ -197,30 +197,32 @@ namespace ObjectAndPoseDetection.UWP
         {
             List<CubicBoundingBox> boxes = new List<CubicBoundingBox>();
             using (var imageTensor = ConvertPixelsByteToTensor(imagePixels, BitmapPixelFormat.Bgra8))
-            //using (var input = new SingelObjectApeModelV8Input() { image = imageTensor })
-            //using (var output = await model.EvaluateAsync(input))
+            using (var input = new SingelObjectApeModelV8Input() { Image = imageTensor })
+            using (var output = await model.EvaluateAsync(input).ConfigureAwait(true))
             {
-                //var shape = output.grid.Shape;
-                //var content = output.grid.GetAsVectorView().ToArray();
-                //List<float[]> abc = new List<float[]>();
-                //abc.Add(content);
+                var shape = output.Grid.Shape;
+                var content = output.Grid.GetAsVectorView().ToArray();
+                List<float[]> abc = new List<float[]>
+                {
+                    content
+                };
 
-                //using (OutputParser outputParser = new OutputParser(abc, 1, 1, 0.5f))
-                //{
-                //    foreach (var box in outputParser.BoundingBoxes)
-                //    {
-                //        var newBox = new CubicBoundingBox()
-                //        {
-                //            Confidence = box.Confidence,
-                //            Identity = box.Identity
-                //        };
-                //        foreach (var point in box.ControlPoint)
-                //        {
-                //            newBox.ControlPoint.Append(point);
-                //        }
-                //        boxes.Add(box);
-                //    }
-                //}
+                using (OutputParser outputParser = new OutputParser(abc, 1, 1, 0.5f))
+                {
+                    foreach (var box in outputParser.BoundingBoxes)
+                    {
+                        var newBox = new CubicBoundingBox()
+                        {
+                            Confidence = box.Confidence,
+                            Identity = box.Identity
+                        };
+                        foreach (var point in box.ControlPoint)
+                        {
+                            newBox.ControlPoint.Append(point);
+                        }
+                        boxes.Add(box);
+                    }
+                }
             }
 
 
@@ -231,6 +233,12 @@ namespace ObjectAndPoseDetection.UWP
         public async Task<TensorFloat> ConvertImageToTensorAsync(BitmapDecoder imageDecoder)
         {
             var transform = new BitmapTransform() { ScaledWidth = 416, ScaledHeight = 416, InterpolationMode = BitmapInterpolationMode.Fant };
+
+            if(imageDecoder == null)
+            {
+                throw new NullReferenceException();
+            }
+
             var pixelData = await imageDecoder.GetPixelDataAsync(BitmapPixelFormat.Rgba8, BitmapAlphaMode.Ignore, transform, ExifOrientationMode.IgnoreExifOrientation, ColorManagementMode.DoNotColorManage);
             var pixelsWithAlpha = pixelData.DetachPixelData();
 
@@ -241,6 +249,10 @@ namespace ObjectAndPoseDetection.UWP
 
         public TensorFloat ConvertPixelsByteToTensor(byte[] imagePixels, BitmapPixelFormat bitmapPixelFormat)
         {
+            if(imagePixels == null)
+            {
+                throw new NullReferenceException();
+            }
             var pixelsWithAlpha = imagePixels;
             List<float> reds = new List<float>();
             List<float> greens = new List<float>();
@@ -283,8 +295,8 @@ namespace ObjectAndPoseDetection.UWP
             //Tensor<float> pixelTensor = new DenseTensor<float>(dimensions);
             var inputTesnor = TensorFloat.CreateFromShapeArrayAndDataArray(dimensions, sortedPixels.ToArray());
             //sortedPixels = null;
-            sortedPixels.Clear();
-            sortedPixels.TrimExcess();
+            //sortedPixels.Clear();
+            //sortedPixels.TrimExcess();
             return inputTesnor;
         }
 
@@ -292,46 +304,51 @@ namespace ObjectAndPoseDetection.UWP
         public async void DrawBoxes(IRandomAccessStream imageStream, List<CubicBoundingBox> boxes)
         {
             var device = canvasDevice;
-
+            BitmapSource bitmapImageSouce;
             var image = await CanvasBitmap.LoadAsync(device, imageStream);
 
-            var offscreen = new CanvasRenderTarget(device, (float)image.Bounds.Width, (float)image.Bounds.Height, 96);
+            using (var offscreen = new CanvasRenderTarget(device, (float)image.Bounds.Width, (float)image.Bounds.Height, 96))
             //CanvasSolidColorBrush brush = new CanvasSolidColorBrush(device, Windows.UI.Color.FromArgb(255, 255, 0, 0));
             using (var ds = offscreen.CreateDrawingSession())
             {
                 ds.DrawImage(image);
                 foreach (var box in boxes)
                 {
-                    CanvasSolidColorBrush brush = new CanvasSolidColorBrush(device, Colors.Red);
+                    using (CanvasSolidColorBrush brush = new CanvasSolidColorBrush(device, Colors.Red))
+                    {
 
-                    var points = (from p in box.ControlPoint
-                                  select new Vector2((float)(p.X * image.Bounds.Width), (float)(p.Y * image.Bounds.Height))).ToArray();
+                        var points = (from p in box.ControlPoint
+                                      select new Vector2((float)(p.X * image.Bounds.Width), (float)(p.Y * image.Bounds.Height))).ToArray();
 
-                    ds.DrawLine(points[0], points[1], brush);
-                    ds.DrawLine(points[0], points[4], brush);
-                    ds.DrawLine(points[1], points[5], brush);
-                    ds.DrawLine(points[4], points[5], brush);
-                    ds.DrawLine(points[5], points[7], brush);
-                    ds.DrawLine(points[1], points[3], brush);
-                    ds.DrawLine(points[4], points[6], brush);
-                    ds.DrawLine(points[0], points[2], brush);
-                    ds.DrawLine(points[2], points[6], brush);
-                    ds.DrawLine(points[2], points[3], brush);
-                    ds.DrawLine(points[3], points[7], brush);
-                    ds.DrawLine(points[7], points[6], brush);
+                        ds.DrawLine(points[0], points[1], brush);
+                        ds.DrawLine(points[0], points[4], brush);
+                        ds.DrawLine(points[1], points[5], brush);
+                        ds.DrawLine(points[4], points[5], brush);
+                        ds.DrawLine(points[5], points[7], brush);
+                        ds.DrawLine(points[1], points[3], brush);
+                        ds.DrawLine(points[4], points[6], brush);
+                        ds.DrawLine(points[0], points[2], brush);
+                        ds.DrawLine(points[2], points[6], brush);
+                        ds.DrawLine(points[2], points[3], brush);
+                        ds.DrawLine(points[3], points[7], brush);
+                        ds.DrawLine(points[7], points[6], brush);
+                    }
+
+                }
+
+                
+                using (var stream = new InMemoryRandomAccessStream())
+                {
+                    await offscreen.SaveAsync(stream, CanvasBitmapFileFormat.Jpeg);
+                    bitmapImageSouce = new BitmapImage();
+
+                    stream.Seek(0);
+                    await bitmapImageSouce.SetSourceAsync(stream);
+
                 }
             }
 
-            BitmapSource bitmapImageSouce;
-            using (var stream = new InMemoryRandomAccessStream())
-            {
-                await offscreen.SaveAsync(stream, CanvasBitmapFileFormat.Jpeg);
-                bitmapImageSouce = new BitmapImage();
 
-                stream.Seek(0);
-                await bitmapImageSouce.SetSourceAsync(stream);
-
-            }
 
             await Window.Current.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
              {
@@ -365,28 +382,35 @@ namespace ObjectAndPoseDetection.UWP
         {
             var device = canvasDevice;
             //CanvasSolidColorBrush brush = new CanvasSolidColorBrush(device, Windows.UI.Color.FromArgb(255, 255, 0, 0));
-            using (var ds = canvasImageSource.CreateDrawingSession(Colors.Black))
+            if(canvasImageSource != null)
             {
-                ds.DrawImage(bitmap);
-                foreach (var box in boxes)
+                using (var ds = canvasImageSource.CreateDrawingSession(Colors.Black))
                 {
-                    CanvasSolidColorBrush brush = new CanvasSolidColorBrush(device, Colors.Red);
+                    ds.DrawImage(bitmap);
+                    if(boxes != null)
+                    {
+                        foreach (var box in boxes)
+                        {
+                            using (CanvasSolidColorBrush brush = new CanvasSolidColorBrush(device, Colors.Red))
+                            {
+                                var points = (from p in box.ControlPoint
+                                              select new Vector2((float)(p.X * bitmap.Bounds.Width), (float)(p.Y * bitmap.Bounds.Height))).ToArray();
 
-                    var points = (from p in box.ControlPoint
-                                  select new Vector2((float)(p.X * bitmap.Bounds.Width), (float)(p.Y * bitmap.Bounds.Height))).ToArray();
-
-                    ds.DrawLine(points[0], points[1], brush);
-                    ds.DrawLine(points[0], points[4], brush);
-                    ds.DrawLine(points[1], points[5], brush);
-                    ds.DrawLine(points[4], points[5], brush);
-                    ds.DrawLine(points[5], points[7], brush);
-                    ds.DrawLine(points[1], points[3], brush);
-                    ds.DrawLine(points[4], points[6], brush);
-                    ds.DrawLine(points[0], points[2], brush);
-                    ds.DrawLine(points[2], points[6], brush);
-                    ds.DrawLine(points[2], points[3], brush);
-                    ds.DrawLine(points[3], points[7], brush);
-                    ds.DrawLine(points[7], points[6], brush);
+                                ds.DrawLine(points[0], points[1], brush);
+                                ds.DrawLine(points[0], points[4], brush);
+                                ds.DrawLine(points[1], points[5], brush);
+                                ds.DrawLine(points[4], points[5], brush);
+                                ds.DrawLine(points[5], points[7], brush);
+                                ds.DrawLine(points[1], points[3], brush);
+                                ds.DrawLine(points[4], points[6], brush);
+                                ds.DrawLine(points[0], points[2], brush);
+                                ds.DrawLine(points[2], points[6], brush);
+                                ds.DrawLine(points[2], points[3], brush);
+                                ds.DrawLine(points[3], points[7], brush);
+                                ds.DrawLine(points[7], points[6], brush);
+                            }
+                        }
+                    }
                 }
             }
         }

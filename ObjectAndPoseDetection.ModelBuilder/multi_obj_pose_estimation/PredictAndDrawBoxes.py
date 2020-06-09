@@ -93,10 +93,10 @@ if __name__ == '__main__':
     weightfile = '../Assets/trained/multi.weights'
 
     #模型初始化
-    #model = Darknet(modelcfg)
-    #model.load_weights(weightfile)
-    #model = model.cuda()
-    #model.eval()
+    model = Darknet(modelcfg)
+    model.load_weights(weightfile)
+    model = model.cuda()
+    model.eval()
 
     #加载模型用
     net_options = parse_cfg(modelcfg)[0]
@@ -116,7 +116,7 @@ if __name__ == '__main__':
 
     labelFolders = list()
 
-    for className in ['ape', 'benchvise', 'can', 'cat', 'duck', 'driller', 'glue']:
+    for className in ['ape', 'benchvise', 'can', 'cat', 'duck', 'driller','eggbox', 'glue','holepuncher',]:
         if className == 'benchvise':
             path = datasetPath + className + '/labels/'
         else:
@@ -141,19 +141,30 @@ if __name__ == '__main__':
                  "cat": 4,
                  "driller":5,
                  "duck":6,
-                 "glue": 8}
+                 "eggbox":7,
+                 "glue": 8,
+                 "holepuncher": 9}
     colorDict={0:(255, 0, 0),
                1:(0, 255, 0),
-               3:(0, 0, 255),
+               3:(13, 54, 99),
                4:(255, 125, 0), 
                5:(125, 125, 125),
                6:(255, 125, 125),
-               8:(125, 255, 125)}
+               7:(125, 255, 255),
+               8:(125, 255, 125),
+               9:(22,  22,  22)}
+    prColorDict={0:(255, 255, 255),
+               1:(255, 255, 255),
+               2:(255, 255, 255),
+               3:(255, 255, 255), 
+               4:(255, 255, 255),
+               5:(255, 255, 255),
+               6:(255, 255, 255)}
 
     for i in range(len(imagePaths)):
 
         #将要估计的图片转换成张量
-        '''
+        
         originalImg = Image.open(imagePaths[i]).convert('RGB').resize((test_width, test_height))
     
         img = transforms.ToTensor()(originalImg)
@@ -170,20 +181,20 @@ if __name__ == '__main__':
             for point in box:
                 if isinstance(point, int) == False:
                     point = point.item()
-                print(point)
-        '''
+        
 
         img = cv2.imread(imagePaths[i])
         img_width = img.shape[1]
         img_height = img.shape[0]
         
-        '''
+        
         for batch in all_boxes:
             for box in batch:
-                for i in range(9):
-                    box[2 * i] = int(box[2*i] * img_width)
-                    box[2 * i + 1] = int(box[2*i + 1] * img_height)
+                for k in range(9):
+                    box[2 * k] = int(box[2*k] * img_width)
+                    box[2 * k + 1] = int(box[2*k + 1] * img_height)
       
+        #选出不重复的几个边框
         candidateBoxes = list()
         for classidx in range(13):   
             maxConf = -1000000000
@@ -193,12 +204,11 @@ if __name__ == '__main__':
                     if(box[20] == classidx):
                         if(box[19] > maxConf):
                             maxBox = box
+                            maxBox[18] = maxBox[19].item()
+                            maxBox[19] = torch.tensor(maxBox[20]).item()
             if maxBox != 0:
                 candidateBoxes.append(maxBox)
-    
         
-        plot_boxes_cv2(img, candidateBoxes, '../Assets/Test/multi.jpg', 'nothing')
-        '''
         imageNo = imageNos[i]
 
         labelFilePaths = list()
@@ -228,6 +238,11 @@ if __name__ == '__main__':
             gt_boxes.append(box)
 
         classNames = ['ape', 'benchvise', 'can', 'cat', 'duck', 'driller', 'glue']
+
+        for prbi in range(len(candidateBoxes)):
+            candidateBox = candidateBoxes[prbi]
+            plot_boxes_cv2(img, candidateBox, None,  "fuck", (0,0,255))
+
         for bi in range(len(gt_boxes)):
             gt_box = gt_boxes[bi]
             if bi != (len(gt_boxes) - 1):
