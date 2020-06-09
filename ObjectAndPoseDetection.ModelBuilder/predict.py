@@ -75,11 +75,11 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
 
 if __name__ == '__main__':
 
-    for className in ['can', 'cat', 'driller', 'duck', 'eggbox', 'glue', 'holepuncher', 'iron', 'lamp', 'phone']:
+    for className in ['benchvise']:
         datacfg = 'cfg/' + className + '.data'
         modelcfg = 'cfg/yolo-pose.cfg'
         weightfile = '../Assets/singleshotpose/backup/'+className+'/model_backup.weights'
-        outputFolder = "../Assets/Outputs/" + className+ "/"
+        outputFolder = "../Assets/Outputs/OnlyGT/" + className+ "/"
         inputFolder = "../Assets/DataSets/LINEMOD/" + className + "/JPEGImages/"
         gtLabels = "../Assets/DataSets/LINEMOD/"+className+"/labels/"
         labelPath = list()
@@ -101,15 +101,16 @@ if __name__ == '__main__':
                 imagesPath.append(inputFolder + file)
 
 
-        model = Darknet(modelcfg)
-        model.load_weights(weightfile)
-        model.eval()
+        #model = Darknet(modelcfg)
+        #model.load_weights(weightfile)
+        #model.eval()
 
         test_width = 416
         test_height = 416
 
         for i in range(len(imagesPath)):
 
+            '''
             img = Image.open(imagesPath[i]).convert('RGB')
             img = img.resize((test_width, test_height))
 
@@ -121,6 +122,7 @@ if __name__ == '__main__':
             imgTensor[0] = img
 
             #print(imgTensor * 255)
+
             t2 = time.time()
             data = imgTensor.cuda()
             data = Variable(data, volatile=True)
@@ -131,14 +133,18 @@ if __name__ == '__main__':
             output = get_region_boxes(output, 1, 9)
             #print("Output: \n", output)
             t3 = time.time()
-            output1 = list()
+            '''
+
+            #output1 = list()
             gtBox = labels[i][1:19]
             gtBox.append(1)
             gtBox.append(1)
             gtBox.append(labels[i][0])
 
+            '''
             for o in output:
                 output1.append(o.item())
+            '''
 
             #print('-------------------------------')
             #print(output1)
@@ -152,14 +158,14 @@ if __name__ == '__main__':
             img_height = img.shape[0]
 
             for j in range(9):
-                output1[2*j] = int(output1[2*j] * img_width)
-                output1[2*j + 1] = int(output1[2*j + 1] * img_height)
+                #output1[2*j] = int(output1[2*j] * img_width)
+                #output1[2*j + 1] = int(output1[2*j + 1] * img_height)
                 gtBox[2*j] = int(gtBox[2*j] * img_width)
                 gtBox[2*j + 1] = int(gtBox[2*j + 1] * img_height)
 
             #print('-------------------------------')
             #print(output1)
-            print("用时：", t3-t2)
-            img = plot_boxes_cv2(img, output1, None, classesName, (0, 0, 255))
+            #print("用时：", t3-t2)
+            #img = plot_boxes_cv2(img, output1, None, classesName, (0, 0, 255))
             img = plot_boxes_cv2(img, gtBox, outputFolder + str(i) + ".jpg", classesName, (0, 255, 0))
 

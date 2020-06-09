@@ -122,9 +122,9 @@ def valid(datacfg, modelcfg, weightfile, conf_thread=0.5):
         t3 = time.time()
         # Using confidence threshold, eliminate low-confidence predictions
         all_boxes = get_region_boxes(output, num_classes, num_keypoints) 
-        reallyAllBoxes = get_region_boxes(output, num_classes, num_keypoints, onlyOneBox=False, confThred = conf_thread)
+        #reallyAllBoxes = get_region_boxes(output, num_classes, num_keypoints, onlyOneBox=False, confThred = conf_thread)
 
-        reallyAllBoxes = parseBoxes(reallyAllBoxes, 1, 1)
+        #reallyAllBoxes = parseBoxes(reallyAllBoxes, 1, 1)
         segements = output.size()[2] * output.size()[3]
 
 
@@ -146,6 +146,7 @@ def valid(datacfg, modelcfg, weightfile, conf_thread=0.5):
                 box_gt.append(truths[k][0])
 
                 #计算和真实值拟合的数量
+                '''
                 doneWithRealBox = False
                 for preRealBox in reallyAllBoxes:
                     conf = valid_corner_confidences(torch.tensor(box_gt).cuda(), preRealBox, im_width, im_height)
@@ -154,6 +155,7 @@ def valid(datacfg, modelcfg, weightfile, conf_thread=0.5):
                     elif not doneWithRealBox:
                         noOfTruePostive += 1
                         doneWithRealBox = True
+                '''
 
                 # Denormalize the corner predictions 
                 corners2D_gt = np.array(np.reshape(box_gt[:18], [-1, 2]), dtype='float32')
@@ -233,6 +235,7 @@ def valid(datacfg, modelcfg, weightfile, conf_thread=0.5):
     mean_corner_err_2d = np.mean(errs_corner2D)
     nts = float(testing_samples)
 
+    '''
     noOfFalseNegative = batch_idx + 1 - noOfTruePostive
     print("threadhold: ", conf_thread)
     print("no of mistake(FP): ", noOfFalsePostive)
@@ -248,7 +251,7 @@ def valid(datacfg, modelcfg, weightfile, conf_thread=0.5):
     else:
         print("全他妈错了")
     print("no: ", batch_idx)
-
+    '''
 
     if testtime:
         print('-----------------------------------')
@@ -271,7 +274,7 @@ def valid(datacfg, modelcfg, weightfile, conf_thread=0.5):
         predfile = backupdir + '/predictions_linemod_' + name +  '.mat'
         scipy.io.savemat(predfile, {'R_gts': gts_rot, 't_gts':gts_trans, 'corner_gts': gts_corners2D, 'R_prs': preds_rot, 't_prs':preds_trans, 'corner_prs': preds_corners2D})
     
-    return noOfTruePostive, noOfFalsePostive, noOfFalseNegative, precision, recall 
+    return
 
 if __name__ == '__main__':
 
@@ -283,7 +286,7 @@ if __name__ == '__main__':
     fn = 0
     precisions = list()
     recalls = list()
-    for object in ['ape', 'cam', 'can', 'cat', 'driller', 'duck', 'eggbox', 'glue', 'holdpuncher', 'iron', 'lamp']:
+    for object in ['iron', 'lamp']:
         '''
         parser = argparse.ArgumentParser(description='SingleShotPose')
         print("fuck")
@@ -296,14 +299,17 @@ if __name__ == '__main__':
         datacfg    = "cfg/" + object + ".data"
         modelcfg   = 'cfg/yolo-pose.cfg'
         weightfile = '../Assets/Weights/trained/' + object + '/model_backup.weights'
-        noOfTruePostive, noOfFalsePostive, noOfFalseNegative, precision, recall = valid(datacfg, modelcfg, weightfile, 0.65)
+        valid(datacfg, modelcfg, weightfile, 0.65)
+
+        '''
         tp = tp + noOfTruePostive
         fp = fp + noOfFalsePostive
         fn = noOfFalseNegative
         precisions.append(precision)
         recalls.append(recall)
-
-    
+        '''
+        
+    '''
     print("一次完成")
     print("阈值", i)
     print("tp:", tp)
@@ -311,5 +317,6 @@ if __name__ == '__main__':
     print("fn:", fn)
     print("mean pr:", mean(precisions))
     print("mean rec:", mean(recalls))
+    '''
 
     print("完成")

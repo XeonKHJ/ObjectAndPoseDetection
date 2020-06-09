@@ -317,7 +317,7 @@ if __name__ == "__main__":
 
         datacfg             = 'cfg/' + trainedObject + '.data'
         modelcfg            = 'cfg/yolo-pose.cfg'
-        initweightfile      = '../Assets/Weights/darknet19_448.conv.23'
+        initweightfile      = '../Assets/Weights/trained/ape/model_backup.weights'
         pretrain_num_epochs = 15
 
         # Parse configuration files
@@ -361,7 +361,7 @@ if __name__ == "__main__":
 
 
         # Specify which gpus to use
-        use_cuda      = True
+        use_cuda      = False
         seed          = int(time.time())
         torch.manual_seed(seed)
         if use_cuda:
