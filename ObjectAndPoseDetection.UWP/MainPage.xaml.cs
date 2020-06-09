@@ -35,6 +35,7 @@ using Windows.Media.Core;
 using Microsoft.Graphics.Canvas.UI.Xaml;
 using System.Drawing;
 using Microsoft.Graphics.Canvas.Effects;
+using Windows.UI.Core;
 
 // https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x804 上介绍了“空白页”项模板
 
@@ -106,7 +107,7 @@ namespace ObjectAndPoseDetection.UWP
 
         private void PlaybackSession_PlaybackStateChanged(MediaPlaybackSession sender, object args)
         {
-            System.Diagnostics.Debug.WriteLine(string.Format(System.Globalization.CultureInfo.CurrentCulture,"PlayStatus{0}", sender.PlaybackState));
+            System.Diagnostics.Debug.WriteLine(string.Format(System.Globalization.CultureInfo.CurrentCulture, "PlayStatus{0}", sender.PlaybackState));
         }
 
         SoftwareBitmap frameServerDest;
@@ -122,21 +123,21 @@ namespace ObjectAndPoseDetection.UWP
             isRenderringFinished = false;
             //CanvasDevice canvasDevice = CanvasDevice.GetSharedDevice();
 
-            await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, async () =>
+            if (frameServerDest == null)
             {
-                if (frameServerDest == null)
-                {
-                    frameServerDest = new SoftwareBitmap(BitmapPixelFormat.Bgra8, (int)sender.PlaybackSession.NaturalVideoWidth, (int)sender.PlaybackSession.NaturalVideoHeight, BitmapAlphaMode.Ignore);
-                }
+                frameServerDest = new SoftwareBitmap(BitmapPixelFormat.Bgra8, (int)sender.PlaybackSession.NaturalVideoWidth, (int)sender.PlaybackSession.NaturalVideoHeight, BitmapAlphaMode.Ignore);
+            }
+            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
+            {
                 canvasImageSource = new CanvasImageSource(canvasDevice, (int)sender.PlaybackSession.NaturalVideoWidth, (int)sender.PlaybackSession.NaturalVideoWidth, DisplayInformation.GetForCurrentView().LogicalDpi);//96); 
                 OutputImage.Source = canvasImageSource;
 
                 try
                 {
                     using (CanvasBitmap inputBitmap = CanvasBitmap.CreateFromSoftwareBitmap(canvasDevice, frameServerDest))
+                    using (var canvasRenderTarget = new CanvasRenderTarget(canvasDevice, 416, 416, 96))
                     //using (CanvasDrawingSession ds = canvasImageSource.CreateDrawingSession(Colors.Black))
                     {
-                        var canvasRenderTarget = new CanvasRenderTarget(canvasDevice, 416, 416, 96);
                         sender.CopyFrameToVideoSurface(inputBitmap);
 
                         using (var cds = canvasRenderTarget.CreateDrawingSession())
@@ -145,6 +146,11 @@ namespace ObjectAndPoseDetection.UWP
                         }
 
                         var pixelBytes = canvasRenderTarget.GetPixelBytes();
+
+                        if (pixelBytes[40] == 0)
+                        {
+                            System.Diagnostics.Debug.WriteLine("fuckzero");
+                        }
 
                         var boxes = await DetectObjectPoseFromImagePixelsAsync(pixelBytes).ConfigureAwait(true);
 
@@ -176,7 +182,7 @@ namespace ObjectAndPoseDetection.UWP
                 BitmapDecoder decoder = await BitmapDecoder.CreateAsync(stream);
                 using (var imageTensor = await ConvertImageToTensorAsync(decoder).ConfigureAwait(true))
                 using (var input = new SingelObjectApeModelV8Input() { Image = imageTensor })
-                using(var output = await model.EvaluateAsync(input).ConfigureAwait(true))
+                using (var output = await model.EvaluateAsync(input).ConfigureAwait(true))
                 {
                     var shape = output.Grid.Shape;
                     var content = output.Grid.GetAsVectorView().ToArray();
@@ -234,7 +240,7 @@ namespace ObjectAndPoseDetection.UWP
         {
             var transform = new BitmapTransform() { ScaledWidth = 416, ScaledHeight = 416, InterpolationMode = BitmapInterpolationMode.Fant };
 
-            if(imageDecoder == null)
+            if (imageDecoder == null)
             {
                 throw new NullReferenceException();
             }
@@ -249,7 +255,7 @@ namespace ObjectAndPoseDetection.UWP
 
         public TensorFloat ConvertPixelsByteToTensor(byte[] imagePixels, BitmapPixelFormat bitmapPixelFormat)
         {
-            if(imagePixels == null)
+            if (imagePixels == null)
             {
                 throw new NullReferenceException();
             }
@@ -262,11 +268,11 @@ namespace ObjectAndPoseDetection.UWP
                 switch (i % 4)
                 {
                     case 0:
-                        if(bitmapPixelFormat == BitmapPixelFormat.Rgba8)
+                        if (bitmapPixelFormat == BitmapPixelFormat.Rgba8)
                         {
                             reds.Add((float)pixelsWithAlpha[i] / 255);
                         }
-                        else if(bitmapPixelFormat == BitmapPixelFormat.Bgra8)
+                        else if (bitmapPixelFormat == BitmapPixelFormat.Bgra8)
                         {
                             blues.Add((float)pixelsWithAlpha[i] / 255);
                         }
@@ -336,7 +342,7 @@ namespace ObjectAndPoseDetection.UWP
 
                 }
 
-                
+
                 using (var stream = new InMemoryRandomAccessStream())
                 {
                     await offscreen.SaveAsync(stream, CanvasBitmapFileFormat.Jpeg);
@@ -382,12 +388,12 @@ namespace ObjectAndPoseDetection.UWP
         {
             var device = canvasDevice;
             //CanvasSolidColorBrush brush = new CanvasSolidColorBrush(device, Windows.UI.Color.FromArgb(255, 255, 0, 0));
-            if(canvasImageSource != null)
+            if (canvasImageSource != null)
             {
                 using (var ds = canvasImageSource.CreateDrawingSession(Colors.Black))
                 {
                     ds.DrawImage(bitmap);
-                    if(boxes != null)
+                    if (boxes != null)
                     {
                         foreach (var box in boxes)
                         {
@@ -417,9 +423,9 @@ namespace ObjectAndPoseDetection.UWP
 
         private void PlayButton_Click(object sender, RoutedEventArgs e)
         {
-            if(_mediaPlayer != null)
+            if (_mediaPlayer != null)
             {
-                switch(_mediaPlayer.PlaybackSession.PlaybackState)
+                switch (_mediaPlayer.PlaybackSession.PlaybackState)
                 {
                     case MediaPlaybackState.Paused:
                         _mediaPlayer.Play();
