@@ -50,6 +50,7 @@ namespace ObjectAndPoseDetection.UWP
         {
             this.InitializeComponent();
             canvasDevice = CanvasDevice.GetSharedDevice();
+            canvasRenderTarget = new CanvasRenderTarget(canvasDevice, 416, 416, 96);
             LoadModel();
         }
 
@@ -114,6 +115,7 @@ namespace ObjectAndPoseDetection.UWP
         CanvasImageSource canvasImageSource;
         bool isRenderringFinished = true;
         CanvasDevice canvasDevice;
+        CanvasRenderTarget canvasRenderTarget;
         private async void MediaPlayer_VideoFrameAvailableAsync(MediaPlayer sender, object args)
         {
             if (!isRenderringFinished)
@@ -135,7 +137,6 @@ namespace ObjectAndPoseDetection.UWP
                 try
                 {
                     using (CanvasBitmap inputBitmap = CanvasBitmap.CreateFromSoftwareBitmap(canvasDevice, frameServerDest))
-                    using (var canvasRenderTarget = new CanvasRenderTarget(canvasDevice, 416, 416, 96))
                     //using (CanvasDrawingSession ds = canvasImageSource.CreateDrawingSession(Colors.Black))
                     {
                         sender.CopyFrameToVideoSurface(inputBitmap);
@@ -310,78 +311,58 @@ namespace ObjectAndPoseDetection.UWP
         public async void DrawBoxes(IRandomAccessStream imageStream, List<CubicBoundingBox> boxes)
         {
             var device = canvasDevice;
-            BitmapSource bitmapImageSouce;
+
             var image = await CanvasBitmap.LoadAsync(device, imageStream);
 
-            using (var offscreen = new CanvasRenderTarget(device, (float)image.Bounds.Width, (float)image.Bounds.Height, 96))
+            var offscreen = canvasRenderTarget;
             //CanvasSolidColorBrush brush = new CanvasSolidColorBrush(device, Windows.UI.Color.FromArgb(255, 255, 0, 0));
             using (var ds = offscreen.CreateDrawingSession())
             {
                 ds.DrawImage(image);
-                foreach (var box in boxes)
+                if(boxes != null)
                 {
-                    using (CanvasSolidColorBrush brush = new CanvasSolidColorBrush(device, Colors.Red))
+                    foreach (var box in boxes)
                     {
+                        CanvasSolidColorBrush brush = new CanvasSolidColorBrush(device, Colors.Red);
+                        
+                            var points = (from p in box.ControlPoint
+                                          select new Vector2((float)(p.X * image.Bounds.Width), (float)(p.Y * image.Bounds.Height))).ToArray();
 
-                        var points = (from p in box.ControlPoint
-                                      select new Vector2((float)(p.X * image.Bounds.Width), (float)(p.Y * image.Bounds.Height))).ToArray();
-
-                        ds.DrawLine(points[0], points[1], brush);
-                        ds.DrawLine(points[0], points[4], brush);
-                        ds.DrawLine(points[1], points[5], brush);
-                        ds.DrawLine(points[4], points[5], brush);
-                        ds.DrawLine(points[5], points[7], brush);
-                        ds.DrawLine(points[1], points[3], brush);
-                        ds.DrawLine(points[4], points[6], brush);
-                        ds.DrawLine(points[0], points[2], brush);
-                        ds.DrawLine(points[2], points[6], brush);
-                        ds.DrawLine(points[2], points[3], brush);
-                        ds.DrawLine(points[3], points[7], brush);
-                        ds.DrawLine(points[7], points[6], brush);
+                            ds.DrawLine(points[0], points[1], brush);
+                            ds.DrawLine(points[0], points[4], brush);
+                            ds.DrawLine(points[1], points[5], brush);
+                            ds.DrawLine(points[4], points[5], brush);
+                            ds.DrawLine(points[5], points[7], brush);
+                            ds.DrawLine(points[1], points[3], brush);
+                            ds.DrawLine(points[4], points[6], brush);
+                            ds.DrawLine(points[0], points[2], brush);
+                            ds.DrawLine(points[2], points[6], brush);
+                            ds.DrawLine(points[2], points[3], brush);
+                            ds.DrawLine(points[3], points[7], brush);
+                            ds.DrawLine(points[7], points[6], brush);
+                        
                     }
 
                 }
 
-
-                using (var stream = new InMemoryRandomAccessStream())
-                {
-                    await offscreen.SaveAsync(stream, CanvasBitmapFileFormat.Jpeg);
-                    bitmapImageSouce = new BitmapImage();
-
-                    stream.Seek(0);
-                    await bitmapImageSouce.SetSourceAsync(stream);
-
-                }
             }
 
+            BitmapSource bitmapImageSouce;
+            using (var stream = new InMemoryRandomAccessStream())
+            {
+                await offscreen.SaveAsync(stream, CanvasBitmapFileFormat.Jpeg);
+                bitmapImageSouce = new BitmapImage();
 
+                stream.Seek(0);
+                await bitmapImageSouce.SetSourceAsync(stream);
+
+            }
 
             await Window.Current.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
-             {
-                 //var savepicker = new FileSavePicker();
-                 //savepicker.FileTypeChoices.Add("JPEG", new List<string> { ".jpg" });
-                 //var destFile = await savepicker.PickSaveFileAsync();
+            {
+                OutputImage.Source = bitmapImageSouce;
+            });
 
-                 //var displayInformation = DisplayInformation.GetForCurrentView();
-
-                 //if(destFile != null)
-                 //{
-                 //    using(var s =  await destFile.OpenAsync(FileAccessMode.ReadWrite))
-                 //    {
-                 //var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, s);
-                 //encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore,
-                 //    (uint)offscreen.Size.Width,
-                 //    (uint)offscreen.Size.Height,
-                 //    displayInformation.LogicalDpi,
-                 //    displayInformation.LogicalDpi,
-                 //    offscreen.GetPixelBytes());
-
-                 //        await encoder.FlushAsync();
-                 //    }
-                 //}
-
-                 OutputImage.Source = bitmapImageSouce;
-             });
         }
 
         public void DrawBoxes(CanvasBitmap bitmap, List<CubicBoundingBox> boxes, CanvasImageSource canvasImageSource)
