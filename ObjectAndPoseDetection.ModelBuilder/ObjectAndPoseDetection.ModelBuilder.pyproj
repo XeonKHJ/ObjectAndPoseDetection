@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{1f0f0b26-ae62-4c44-901c-b3a3be159184}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>multi_obj_pose_estimation\PredictAndDrawBoxes.py</StartupFile>
+    <StartupFile>train.py</StartupFile>
     <SearchPath />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>

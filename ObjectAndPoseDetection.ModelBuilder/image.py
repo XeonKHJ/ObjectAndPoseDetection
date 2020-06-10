@@ -121,6 +121,8 @@ def change_background(img, mask, bg):
     for c in range(len(imcs)):
         negmask = maskcs[c].point(lambda i: 1 - i / 255)
         posmask = maskcs[c].point(lambda i: i / 255)
+        
+        #a是真正图片的当前通道，b是背景的当前通道，c是正掩码，d是负掩码
         fics[c] = ImageMath.eval("a * c + b * d", a=imcs[c], b=bgcs[c], c=posmask, d=negmask).convert('L')
     out = Image.merge(img.mode, tuple(fics))
 
@@ -130,7 +132,7 @@ def load_data_detection(imgpath, shape, jitter, hue, saturation, exposure, bgpat
     labpath = imgpath.replace('images', 'labels').replace('JPEGImages', 'labels').replace('.jpg', '.txt').replace('.png','.txt')
     maskpath = imgpath.replace('JPEGImages', 'mask').replace('/00', '/').replace('.jpg', '.png')
 
-    ## data augmentation
+    ## 数据增强
     img = Image.open(imgpath).convert('RGB')
     mask = Image.open(maskpath).convert('RGB')
     bg = Image.open(bgpath).convert('RGB')

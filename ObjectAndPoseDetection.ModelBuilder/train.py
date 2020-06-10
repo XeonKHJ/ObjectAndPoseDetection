@@ -31,12 +31,12 @@ experiment = None
 #print("Azure工作区信息：\n", ws.get_details())
 
 
-# Create new directory
+# 创建新目录
 def makedirs(path):
     if not os.path.exists( path ):
         os.makedirs( path )
 
-# Adjust learning rate during training, learning schedule can be changed in network config file
+# 调整学习率
 def adjust_learning_rate(optimizer, batch):
     lr = learning_rate
     for i in range(len(steps)):
@@ -112,15 +112,18 @@ def train(epoch):
         # Wrap tensors in Variable class for automatic differentiation
         data, target = Variable(data), Variable(target)
         t4 = time.time()
-        # Zero the gradients before running the backward pass
+        # 在执行反向传播时先将倒数清零
         optimizer.zero_grad()
         t5 = time.time()
-        # Forward pass
+
+        # 向前传播
         output = model(data)
+
         t6 = time.time()
         model.seen = model.seen + data.data.size(0)
         region_loss.seen = region_loss.seen + data.data.size(0)
-        # Compute loss, grow an array of losses for saving later on
+
+        # 计算一系列的损失
         loss, loss_x, loss_y, loss_conf = region_loss(output, target, epoch)
 
         totalLoss += loss
@@ -133,13 +136,16 @@ def train(epoch):
         training_losses.append(convert2cpu(loss.data))
         niter += 1
         t7 = time.time()
-        # Backprop: compute gradient of the loss with respect to model parameters
+
+        # 反向传播，计算误差
         loss.backward()
         t8 = time.time()
-        # Update weights
+
+        # 更新权重
         optimizer.step()
         t9 = time.time()
-        # Print time statistics
+
+        # 打印出耗时
         if False and batch_idx > 1:
             avg_time[0] = avg_time[0] + (t2-t1)
             avg_time[1] = avg_time[1] + (t3-t2)
@@ -199,14 +205,14 @@ def test(epoch, niter):
     # Iterate through test examples 
     for batch_idx, (data, target) in enumerate(test_loader):
         t1 = time.time()
-        # Pass the data to GPU
+        # 是否使用CUDA
         if use_cuda:
             data = data.cuda()
             target = target.cuda()
         # Wrap tensors in Variable class, set volatile=True for inference mode and to use minimal memory during inference
         data = Variable(data, volatile=True)
         t2 = time.time()
-        # Formward pass
+        # 向前传递
         output = model(data).data  
         t3 = time.time()
         # Using confidence threshold, eliminate low-confidence predictions
@@ -345,11 +351,11 @@ if __name__ == "__main__":
         scales        = [float(scale) for scale in net_options['scales'].split(',')]
         bg_file_names = get_all_files('../Assets/DataSets/VOCdevkit/VOC2012/JPEGImages')
 
-        # Train parameters
+        # 训练参数
         max_epochs    = int(net_options['max_epochs'])
         num_keypoints = int(net_options['num_keypoints'])
 
-        # Test parameters
+        # 测试参数
         im_width    = int(data_options['width'])
         im_height   = int(data_options['height'])
         fx          = float(data_options['fx'])
@@ -360,7 +366,7 @@ if __name__ == "__main__":
         test_height = int(net_options['test_height'])
 
 
-        # Specify which gpus to use
+        # 指定GPU
         use_cuda      = False
         seed          = int(time.time())
         torch.manual_seed(seed)
@@ -368,11 +374,11 @@ if __name__ == "__main__":
             os.environ['CUDA_VISIBLE_DEVICES'] = gpus
             torch.cuda.manual_seed(seed)
 
-        # Specifiy the model and the loss
+        # 指定模型和损失函数
         model       = Darknet(modelcfg)
         region_loss = RegionLoss(num_keypoints=9, num_classes=1, anchors=[], num_anchors=1, pretrain_num_epochs=15, use_cuda=use_cuda)
 
-        # Model settings
+        # 加载权重
         model.load_weights_until_last(initweightfile)
 
         #exportToOnnx(model)

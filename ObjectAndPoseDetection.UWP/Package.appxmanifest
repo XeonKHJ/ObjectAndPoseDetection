@@ -8,8 +8,8 @@
 
   <Identity
     Name="b00c794c-f163-4bbd-a623-dc841bb79655"
-    Publisher="CN=redal"
-    Version="1.0.0.0" />
+    Publisher="CN=康宏嘉"
+    Version="1.0.1.0" />
 
   <mp:PhoneIdentity PhoneProductId="b00c794c-f163-4bbd-a623-dc841bb79655" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
