@@ -46,8 +46,8 @@ def OpenImageAsTensor(path, height, width):
 if __name__ == "__main__":
     datacfg = 'cfg/ape.data'
     modelcfg = 'cfg/yolo-pose.cfg'
-    weightfile = '../Assets/trained/ape.weights'
-    onnxOutputPath = '../Assets/OnnxModel/SingelObjectApeModelV8.onnx'
+    weightfile = '../Assets/Weights/trained/cam/model_backup.weights'
+    onnxOutputPath = '../Assets/OnnxModel/SingelObjectCamModelV8.onnx'
     model = Darknet(modelcfg)
     model.load_weights(weightfile)
     model.eval()
@@ -61,6 +61,7 @@ if __name__ == "__main__":
 
     #打开图片
     #img = OpenImageAsTensor('LINEMOD/ape/JPEGImages/000068.jpg', test_height, test_width)
+    '''
     img = OpenImageAsTensor('white.jpg', test_height, test_width)
     img.unsqueeze_(0)
 
@@ -74,3 +75,4 @@ if __name__ == "__main__":
     print("使用ONNX：\n", ort_outs)
 
     print("使用PyTorch：\n", model(img))
+    '''

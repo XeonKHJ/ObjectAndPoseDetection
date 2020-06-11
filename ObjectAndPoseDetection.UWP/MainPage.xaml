@@ -8,18 +8,28 @@
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
-        <Grid Name="ContentGrid" Grid.Row="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="ButtonColumn" Width="*"></ColumnDefinition>
-                <ColumnDefinition x:Name="ResultColumn" Width="*"></ColumnDefinition>
-            </Grid.ColumnDefinitions>
-        <Button x:Name="InputButton" Grid.Column="0" Click="Button_Click" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+    <Grid Name="ContentGrid" Grid.Row="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"></RowDefinition>
+            <RowDefinition></RowDefinition>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="ButtonColumn" Width="*"></ColumnDefinition>
+            <ColumnDefinition x:Name="ResultColumn" Width="*"></ColumnDefinition>
+        </Grid.ColumnDefinitions>
+        <StackPanel Grid.Row="0" Orientation="Horizontal">
+            <RadioButton x:Name="ApeButton" GroupName="OnnxModelSelection" IsChecked="True" Checked="ApeButton_Checked">Ape</RadioButton>
+            <RadioButton x:Name="CanButton" GroupName="OnnxModelSelection" Checked="CanButton_Checked">Can</RadioButton>
+            <RadioButton x:Name="CamButton" GroupName="OnnxModelSelection" Checked="CamButton_Checked">Cam</RadioButton>
+            <RadioButton x:Name="MultiButton" GroupName="OnnxModelSelection" Checked="MultiButton_Checked">Multi</RadioButton>
+        </StackPanel>
+        <Button x:Name="InputButton" Grid.Column="0" Grid.Row="1" Click="Button_Click" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <Button.Content>
                 <Image x:Name="InputImage">
-                    </Image>
+                </Image>
             </Button.Content>
         </Button>
-        <Button x:Name="PlayButton" Click="PlayButton_Click">暂停/播放</Button>
-            <Image x:Name="OutputImage" Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"></Image>
-        </Grid>
+        <Button Grid.Row="1" x:Name="PlayButton" Click="PlayButton_Click">暂停/播放</Button>
+        <Image Grid.Row="1"  x:Name="OutputImage" Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"></Image>
+    </Grid>
 </Page>

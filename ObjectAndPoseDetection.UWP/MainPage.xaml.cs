@@ -52,18 +52,18 @@ namespace ObjectAndPoseDetection.UWP
             this.InitializeComponent();
             canvasDevice = CanvasDevice.GetSharedDevice();
             canvasRenderTarget = new CanvasRenderTarget(canvasDevice, 416, 416, 96);
-            classCount = 13;
-            anchorCount = 5;
-            confThresh = 0.05f;
-            LoadModel();
+            //classCount = 13;
+            //anchorCount = 5;
+            //confThresh = 0.05f;
+            //LoadModel("ms-appx:///Assets/MultiObjectDetectionModelv8.onnx");
         }
         private int classCount;
         private int anchorCount;
         private float confThresh;
 
-        private async void LoadModel()
+        private async void LoadModel(string modelPath)
         {
-            var onnxFile = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/MultiObjectDetectionModelv8.onnx"));
+            var onnxFile = await StorageFile.GetFileFromApplicationUriAsync(new Uri(modelPath));
             model = await SingelObjectApeModelV8Model.CreateFromStreamAsync(onnxFile).ConfigureAwait(true);
         }
         private async void Button_Click(object sender, RoutedEventArgs e)
@@ -423,6 +423,32 @@ namespace ObjectAndPoseDetection.UWP
                         break;
                 }
             }
+        }
+
+        private void ApeButton_Checked(object sender, RoutedEventArgs e)
+        {
+            classCount = 1;
+            anchorCount = 1;
+            confThresh = 0.5f;
+            LoadModel("ms-appx:///Assets/SingelObjectApeModelV8.onnx");
+        }
+
+        private void CanButton_Checked(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void CamButton_Checked(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void MultiButton_Checked(object sender, RoutedEventArgs e)
+        {
+            classCount = 13;
+            anchorCount = 5;
+            confThresh = 0.05f;
+            LoadModel("ms-appx:///Assets/MultiObjectDetectionModelv8.onnx");
         }
     }
 }
