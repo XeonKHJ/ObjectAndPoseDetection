@@ -36,6 +36,7 @@ using Microsoft.Graphics.Canvas.UI.Xaml;
 using System.Drawing;
 using Microsoft.Graphics.Canvas.Effects;
 using Windows.UI.Core;
+using Windows.Devices.Bluetooth;
 
 // https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x804 上介绍了“空白页”项模板
 
@@ -51,12 +52,18 @@ namespace ObjectAndPoseDetection.UWP
             this.InitializeComponent();
             canvasDevice = CanvasDevice.GetSharedDevice();
             canvasRenderTarget = new CanvasRenderTarget(canvasDevice, 416, 416, 96);
+            classCount = 13;
+            anchorCount = 5;
+            confThresh = 0.05f;
             LoadModel();
         }
+        private int classCount;
+        private int anchorCount;
+        private float confThresh;
 
         private async void LoadModel()
         {
-            var onnxFile = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/SingelObjectApeModelV8.onnx"));
+            var onnxFile = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/MultiObjectDetectionModelv8.onnx"));
             model = await SingelObjectApeModelV8Model.CreateFromStreamAsync(onnxFile).ConfigureAwait(true);
         }
         private async void Button_Click(object sender, RoutedEventArgs e)
@@ -191,7 +198,7 @@ namespace ObjectAndPoseDetection.UWP
                     {
                         content
                     };
-                    using (OutputParser outputParser = new OutputParser(rawOutput, 1, 1, 0.5f))
+                    using (OutputParser outputParser = new OutputParser(rawOutput, classCount, anchorCount, confThresh))
                     {
                         var boxes = outputParser.BoundingBoxes;
                         DrawBoxes(stream, boxes);
@@ -214,7 +221,7 @@ namespace ObjectAndPoseDetection.UWP
                     content
                 };
 
-                using (OutputParser outputParser = new OutputParser(abc, 1, 1, 0.5f))
+                using (OutputParser outputParser = new OutputParser(abc, classCount, anchorCount, confThresh))
                 {
                     foreach (var box in outputParser.BoundingBoxes)
                     {
