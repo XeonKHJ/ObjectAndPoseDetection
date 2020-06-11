@@ -133,6 +133,9 @@
     <Compile Include="MultiObjectDetectionModelv8.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SingelObjectApeModelV8.cs" />
+    <Compile Include="SingelObjectBenchviseModelV8.cs" />
+    <Compile Include="SingelObjectCamModelV8.cs" />
+    <Compile Include="SingelObjectCanModelV8.cs" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">
@@ -189,6 +192,15 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Assets\SingelObjectBenchviseModelV8.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\SingelObjectCamModelV8.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\SingelObjectCanModelV8.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <None Include="ObjectAndPoseDetection.UWP_TemporaryKey.pfx" />
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">

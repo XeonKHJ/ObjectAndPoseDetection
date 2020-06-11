@@ -174,9 +174,12 @@ namespace ObjectAndPoseDetection.UWP
             isRenderringFinished = true;
         }
 
+        private StorageFile openedFile;
+
         private SingelObjectApeModelV8Model model;
         private async void DetectObjectPoseFromPicFile(StorageFile inputFile)
         {
+            openedFile = inputFile;
             var file = inputFile;
 
             //var transform = new BitmapTransform() { ScaledWidth = 416, ScaledHeight = 416, InterpolationMode = BitmapInterpolationMode.Fant };
@@ -435,12 +438,18 @@ namespace ObjectAndPoseDetection.UWP
 
         private void CanButton_Checked(object sender, RoutedEventArgs e)
         {
-
+            classCount = 1;
+            anchorCount = 1;
+            confThresh = 0.5f;
+            LoadModel("ms-appx:///Assets/SingelObjectCanModelV8.onnx");
         }
 
         private void CamButton_Checked(object sender, RoutedEventArgs e)
         {
-
+            classCount = 1;
+            anchorCount = 1;
+            confThresh = 0.5f;
+            LoadModel("ms-appx:///Assets/SingelObjectCamModelV8.onnx");
         }
 
         private void MultiButton_Checked(object sender, RoutedEventArgs e)
@@ -449,6 +458,14 @@ namespace ObjectAndPoseDetection.UWP
             anchorCount = 5;
             confThresh = 0.05f;
             LoadModel("ms-appx:///Assets/MultiObjectDetectionModelv8.onnx");
+        }
+
+        private void BenchviseButton_Checked(object sender, RoutedEventArgs e)
+        {
+            classCount = 1;
+            anchorCount = 1;
+            confThresh = 0.5f;
+            LoadModel("ms-appx:///Assets/SingelObjectBenchviseModelV8.onnx");
         }
     }
 }

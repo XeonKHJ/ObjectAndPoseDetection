@@ -46,8 +46,8 @@ def OpenImageAsTensor(path, height, width):
 if __name__ == "__main__":
     datacfg = 'cfg/ape.data'
     modelcfg = 'cfg/yolo-pose.cfg'
-    weightfile = '../Assets/Weights/trained/cam/model_backup.weights'
-    onnxOutputPath = '../Assets/OnnxModel/SingelObjectCamModelV8.onnx'
+    weightfile = '../Assets/Weights/trained/can/model_backup.weights'
+    onnxOutputPath = '../Assets/OnnxModel/SingelObjectCanModelV8.onnx'
     model = Darknet(modelcfg)
     model.load_weights(weightfile)
     model.eval()

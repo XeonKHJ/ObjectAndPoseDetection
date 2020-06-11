@@ -19,6 +19,7 @@
         </Grid.ColumnDefinitions>
         <StackPanel Grid.Row="0" Orientation="Horizontal">
             <RadioButton x:Name="ApeButton" GroupName="OnnxModelSelection" IsChecked="True" Checked="ApeButton_Checked">Ape</RadioButton>
+            <RadioButton x:Name="BenchviseButton" GroupName="OnnxModelSelection" Checked="BenchviseButton_Checked">Benchvise</RadioButton>
             <RadioButton x:Name="CanButton" GroupName="OnnxModelSelection" Checked="CanButton_Checked">Can</RadioButton>
             <RadioButton x:Name="CamButton" GroupName="OnnxModelSelection" Checked="CamButton_Checked">Cam</RadioButton>
             <RadioButton x:Name="MultiButton" GroupName="OnnxModelSelection" Checked="MultiButton_Checked">Multi</RadioButton>
